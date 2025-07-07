@@ -14,7 +14,7 @@ class Transformer(BaseProcessor):
 
 if __name__ == "__main__":
     args = getResolvedOptions(sys.argv, [
-        'JOB_NAME', 'input_path', 'file_format', 'output_path'
+        'input_path', 'file_format', 'output_path'
     ])
     job = Transformer(args)
     job.run()

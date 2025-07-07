@@ -13,7 +13,7 @@ class QualityChecker(BaseProcessor):
     
 if __name__ == "__main__":
     args = getResolvedOptions(sys.argv, [
-        'JOB_NAME', 'input_path', 'file_format'
+        'input_path', 'file_format'
     ])
     job = QualityChecker(args)
     job.run()
