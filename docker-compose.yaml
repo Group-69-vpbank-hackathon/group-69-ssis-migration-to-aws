@@ -11,7 +11,7 @@ services:
       - "4040:4040"
       - "18080:18080"
     volumes:
-      - ./scripts:/home/glue/scripts
+      - ./batch:/home/glue/scripts
     stdin_open: true
     tty: true
 

@@ -36,8 +36,7 @@ class MySQLCollector(BaseDBCollector):
             .option("upperBound", max_id) \
             .option("numPartitions", num_partition) \
             .load()
-        row_count = df.count()
-        self.logger.info(f"Read all partitions in parallel, rows: {row_count}, time: {time.time() - start_time:.2f}s")
+        self.logger.info(f"Read all partitions in parallel, time: {time.time() - start_time:.2f}s")
         partition_keys = [self.date_column] if self.date_column and self.date_column in df.columns else []
         self.write_to_s3(df, partitionKeys=partition_keys)
 
@@ -51,8 +50,7 @@ class MySQLCollector(BaseDBCollector):
                 .option("user", self.username) \
                 .option("password", self.password) \
                 .load()
-            row_count = df.count()
-            self.logger.info(f"Processing MySQL chunk offset: {offset}, rows: {row_count}, time: {time.time() - start_time:.2f}s")
+            self.logger.info(f"Processing MySQL chunk offset: {offset}, time: {time.time() - start_time:.2f}s")
             partition_keys = [self.date_column] if self.date_column and self.date_column in df.columns else []
             self.write_to_s3(df, partitionKeys=partition_keys)
 

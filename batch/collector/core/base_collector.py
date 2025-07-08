@@ -1,4 +1,5 @@
 import sys
+from datetime import timedelta, datetime
 import json
 import boto3
 import logging
@@ -17,6 +18,8 @@ class BaseCollector:
         self.start_date = args.get('start_date')
         self.end_date = args.get('end_date')
         self.date_column = args.get('date_column')
+        self.date_range = self._generate_date_ranges(self.start_date, self.end_date)
+
 
         self.glue_context = GlueContext(SparkContext.getOrCreate())
         self.spark = self.glue_context.spark_session
@@ -34,15 +37,32 @@ class BaseCollector:
         response = client.get_secret_value(SecretId=secret_name)
         return json.loads(response['SecretString'])
 
-    def write_to_s3(self, df, format="parquet", mode="overwrite", partitionKeys=[]):
+    def write_to_s3(self, df, format="parquet", mode="overwrite", output_file = None):
         self.logger.info(f"Writing to S3: {self.output_path}")
-        df.write.mode(mode).format(format).partitionBy(*partitionKeys).save(self.output_path)
+        df.write.mode(mode).format(format).save(output_file)
 
     def send_notification(self, message):
-        if self.sns_topic_arn:
-            boto3.client('sns').publish(TopicArn=self.sns_topic_arn, Message=message)
+        # if self.sns_topic_arn:
+        #     boto3.client('sns').publish(TopicArn=self.sns_topic_arn, Message=message)
         self.logger.info(f"Notification: {message}")
 
+    def _generate_date_ranges(start_date, end_date, date_format="%Y-%m-%d"):
+        """Generate list of dates between start_date and end_date (inclusive)."""
+        
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, date_format)
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, date_format)
+
+        report_dates = []
+        next_date = start_date
+        delta = timedelta(days=1)
+
+        while next_date <= end_date:
+            report_dates.append(next_date)
+            next_date += delta
+        return report_dates
+    
     def run_with_exception_handling(self):
         try:
             self.run()

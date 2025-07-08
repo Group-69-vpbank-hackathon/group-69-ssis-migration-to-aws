@@ -6,10 +6,13 @@ class BaseDBCollector(BaseCollector):
 
         self.jdbc_url = args['jdbc_url']
         self.table_name = args['table_name']
-        self.secret = self.get_secret(args['secret_name'])
+        # self.secret = self.get_secret(args['secret_name'])
 
-        self.username = self.secret['db_username']
-        self.password = self.secret['db_password']
+        # self.username = self.secret['db_username']
+        # self.password = self.secret['db_password']
+        
+        self.username = 'db_username'
+        self.password = 'db_password'
 
         self.chunk_size = int(args.get('chunk_size', '1000000'))
         self.order_column = args.get('order_column', 'id')
@@ -47,13 +50,13 @@ class BaseDBCollector(BaseCollector):
         return f"{base} {where}"
     
     def _build_count_query(self):
-        base = f"SELECT COUNT(1) FROM {self.table_name}"
+        base = f"SELECT COUNT(1) as total FROM {self.table_name}"
         where = self._build_where_clause()
         return f"{base} {where}"
 
-    def _build_where_clause(self):
-        if self.date_column and self.start_date and self.end_date:
-            return f"WHERE {self.date_column} >= '{self.start_date}' AND {self.date_column} <= '{self.end_date}'"
+    def _build_where_clause(self, event_date):
+        if self.date_column and event_date:
+            return f"WHERE {self.date_column} == '{event_date}'"
         return ""
     
     def read_by_chunks_id(self):
