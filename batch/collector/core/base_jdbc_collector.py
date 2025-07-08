@@ -1,18 +1,21 @@
 from ..core.base_collector import BaseCollector
 
 class BaseDBCollector(BaseCollector):
+    """BaseDBCollector is an abstract class for reading data from relational databases and writing to S3."""
+
     def __init__(self, args, job_name):
         super().__init__(args, job_name)
 
         self.jdbc_url = args['jdbc_url']
         self.table_name = args['table_name']
+        self.selected_columns = args.get('selected_columns', '*').lower()
         # self.secret = self.get_secret(args['secret_name'])
 
         # self.username = self.secret['db_username']
         # self.password = self.secret['db_password']
         
-        self.username = 'db_username'
-        self.password = 'db_password'
+        self.username = 'testuser'
+        self.password = 'testpass'
 
         self.chunk_size = int(args.get('chunk_size', '1000000'))
         self.order_column = args.get('order_column', 'id')
@@ -20,60 +23,24 @@ class BaseDBCollector(BaseCollector):
         self.max_partition = int(args.get('max_partition', '16'))
 
     def read_and_write(self):
-        count_query = self._build_count_query()
-        count_df = self.spark.read.format("jdbc") \
-            .option("url", self.jdbc_url) \
-            .option("query", count_query) \
-            .option("user", self.username) \
-            .option("password", self.password) \
-            .load()
-
-        total_rows = count_df.collect()[0]['total']
-        self.logger.info(f"Total rows to process: {total_rows}")
-        
-        if total_rows <= self.chunk_size:
-            self.logger.info("Dataset is small, using full read mode.")
+        self.logger.info(f"Reading data from {self.table_name} in {self.read_mode} mode.")
+        if self.read_mode == 'chunk_id':
+            self.read_by_chunks_id()
+        elif self.read_mode == 'chunk_custom':
+            self.read_by_chunks_custom()
+        elif self.read_mode == 'full':
             self.read_full()
         else:
-            if self.read_mode == 'chunk_id':
-                self.read_by_chunks_id()
-            elif self.read_mode == 'chunk_custom':
-                self.read_by_chunks_custom(total_rows)
-            elif self.read_mode == 'full':
-                self.read_full()
-            else:
-                raise ValueError(f"Unsupported read_mode: {self.read_mode}")
-                
-    def _build_base_query(self):
-        base = f"SELECT * FROM {self.table_name}"
-        where = self._build_where_clause()
-        return f"{base} {where}"
-    
-    def _build_count_query(self):
-        base = f"SELECT COUNT(1) as total FROM {self.table_name}"
-        where = self._build_where_clause()
-        return f"{base} {where}"
-
-    def _build_where_clause(self, event_date):
-        if self.date_column and event_date:
-            return f"WHERE {self.date_column} == '{event_date}'"
-        return ""
+            raise ValueError(f"Unsupported read_mode: {self.read_mode}")
     
     def read_by_chunks_id(self):
         raise NotImplementedError("read_by_chunks_id must implement run().")
     
-    def read_by_chunks_custom(self, total_rows):
+    def read_by_chunks_custom(self):
         raise NotImplementedError("read_by_chunks_custom must implement run().")
     
     def read_full(self):
-        base_query = self._build_base_query()
+        raise NotImplementedError("read_full must implement run().")
+    
 
-        df = self.spark.read.format("jdbc") \
-            .option("url", self.jdbc_url) \
-            .option("query", base_query) \
-            .option("user", self.username) \
-            .option("password", self.password) \
-            .load()
 
-        self.logger.info("Processing full table read")
-        self.write_to_s3(df, partitionKeys=[self.date_column])

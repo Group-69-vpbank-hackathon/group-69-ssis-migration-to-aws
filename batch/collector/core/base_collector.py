@@ -9,6 +9,8 @@ from pyspark.context import SparkContext
 from awsglue.utils import getResolvedOptions
 
 class BaseCollector:
+    """BaseCollector is an abstract class for reading data from various sources and writing to S3."""
+
     def __init__(self, args, job_name):
         self.args = args
         self.job_name = job_name
@@ -18,8 +20,8 @@ class BaseCollector:
         self.start_date = args.get('start_date')
         self.end_date = args.get('end_date')
         self.date_column = args.get('date_column')
+        self.date_column_type = args.get('date_column_type', 'date')
         self.date_range = self._generate_date_ranges(self.start_date, self.end_date)
-
 
         self.glue_context = GlueContext(SparkContext.getOrCreate())
         self.spark = self.glue_context.spark_session
@@ -38,7 +40,7 @@ class BaseCollector:
         return json.loads(response['SecretString'])
 
     def write_to_s3(self, df, format="parquet", mode="overwrite", output_file = None):
-        self.logger.info(f"Writing to S3: {self.output_path}")
+        self.logger.info(f"Writing to S3: {output_file}")
         df.write.mode(mode).format(format).save(output_file)
 
     def send_notification(self, message):
@@ -46,7 +48,7 @@ class BaseCollector:
         #     boto3.client('sns').publish(TopicArn=self.sns_topic_arn, Message=message)
         self.logger.info(f"Notification: {message}")
 
-    def _generate_date_ranges(start_date, end_date, date_format="%Y-%m-%d"):
+    def _generate_date_ranges(self, start_date, end_date, date_format="%Y-%m-%d"):
         """Generate list of dates between start_date and end_date (inclusive)."""
         
         if isinstance(start_date, str):
@@ -74,6 +76,9 @@ class BaseCollector:
             raise
         finally:
             self.job.commit()
+
+    def _get_output_path(self, event_date):
+        return f"{self.output_path}/year={event_date.year}/month={event_date.month}/day={event_date.day}"
 
     def run(self):
         raise NotImplementedError("Subclasses must implement the run() method.")
