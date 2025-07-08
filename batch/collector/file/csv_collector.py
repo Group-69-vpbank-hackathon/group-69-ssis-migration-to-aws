@@ -1,4 +1,5 @@
 import sys
+import argparse
 from awsglue.utils import getResolvedOptions
 from pyspark.sql.functions import lit, col, to_date
 from datetime import datetime
@@ -21,20 +22,27 @@ class CsvCollector(FileCollector):
             .option("inferSchema", "true") \
             .csv(self.input_path)
         
-        start = datetime.strptime(self.start_date, "%Y-%m-%d").date()
-        end = datetime.strptime(self.end_date, "%Y-%m-%d").date()
+        if self.date_column and hasattr(self, 'date_range') and self.date_range:
+            start = self.date_range[0].strftime("%Y-%m-%d")
+            end = self.date_range[-1].strftime("%Y-%m-%d")
+            
+            self.logger.info(f"Filtering date column '{self.date_column}' between {start} and {end}...")
+            df = df.filter(
+                (to_date(col(self.date_column)) >= lit(start)) &
+                (to_date(col(self.date_column)) <= lit(end))
+            )
+        else:
+            self.logger.info("No date filter applied - processing entire file")
 
-
-        self.logger.info(f"Filtering date column '{self.date_column}' between {self.start_date} and {self.end_date}...")
-        df_filtered = df.filter(
-            (to_date(col(self.date_column)) >= lit(start)) &
-            (to_date(col(self.date_column)) <= lit(end))
-        )
-
-        return df_filtered
+        return df
 
     def process_partitioned(self):
         self.logger.info("Processing partitioned CSV by date=YYYY-MM-DD...")
+        
+        if not hasattr(self, 'date_range') or not self.date_range:
+            self.logger.info("No date range specified - processing all partitions")
+            pass
+
         for event_date in self.date_range:
             partition_path = f"{self.input_path.rstrip('/')}/date={event_date.strftime('%Y-%m-%d')}"
             self.logger.info(f"Reading partition: {partition_path}")
@@ -54,21 +62,27 @@ class CsvCollector(FileCollector):
     def run(self):
         self.logger.info("Starting CsvCollector job...")
 
-        if self.csv_type == "single_file":
-            df_filtered = self.read_data_single_file()
+        if self.csv_type == "all_level":
+            df = self.read_data_single_file()
 
-            self.logger.info("Adding year/month/day columns from date column...")
-            df_final = df_filtered \
-                .withColumn("year", col(self.date_column).substr(1, 4).cast("int")) \
-                .withColumn("month", col(self.date_column).substr(6, 2).cast("int")) \
-                .withColumn("day", col(self.date_column).substr(9, 2).cast("int"))
+            if self.date_column:
+                self.logger.info("Adding year/month/day columns from date column...")
+                df = df \
+                    .withColumn("year", col(self.date_column).substr(1, 4).cast("int")) \
+                    .withColumn("month", col(self.date_column).substr(6, 2).cast("int")) \
+                    .withColumn("day", col(self.date_column).substr(9, 2).cast("int"))
 
-            df_final.show(10)
-            self.logger.info(f"Writing output to {self.output_path} partitioned by year/month/day...")
-            df_final.write \
-                .mode("overwrite") \
-                .partitionBy("year", "month", "day") \
-                .parquet(self.output_path)
+            self.logger.info(f"Writing output to {self.output_path}")
+            
+            if self.date_column:
+                df.write \
+                    .mode("overwrite") \
+                    .partitionBy("year", "month", "day") \
+                    .parquet(self.output_path)
+            else:
+                df.write \
+                    .mode("overwrite") \
+                    .parquet(self.output_path)
 
         elif self.csv_type == "partitioned":
             self.process_partitioned()
@@ -79,16 +93,22 @@ class CsvCollector(FileCollector):
 
 
 if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path',
-        'sns_topic_arn',
-        'start_date',
-        'end_date',
-        'input_path',
-        'file_format',
-        'csv_type',
-        'date_column',
-    ])
+    parser = argparse.ArgumentParser()
 
-    job = CsvCollector(args)
+    parser.add_argument("--input_path", required=True)
+    parser.add_argument("--output_path", required=True)
+    parser.add_argument("--file_format", required=True)
+    parser.add_argument("--csv_type", required=True)
+
+    parser.add_argument("--sns_topic_arn", default=None)
+    parser.add_argument("--start_date", default=None)
+    parser.add_argument("--end_date", default=None)
+    parser.add_argument("--date_column", default=None)
+
+    args = parser.parse_args()
+
+    # Convert to dict if bạn cần
+    args_dict = vars(args)
+
+    job = CsvCollector(args_dict)
     job.run_with_exception_handling()

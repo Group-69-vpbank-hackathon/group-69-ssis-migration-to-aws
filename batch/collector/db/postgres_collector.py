@@ -1,5 +1,5 @@
-import sys
 import time
+import argparse
 from collector.core.base_jdbc_collector import BaseDBCollector
 from awsglue.utils import getResolvedOptions
 
@@ -17,8 +17,11 @@ class PostgresCollector(BaseDBCollector):
         self.read_and_write()
 
     def read_by_chunks_id(self):
-        for event_date in self.date_range:
-            date_str = event_date.strftime("%Y-%m-%d")
+        # Handle empty date_range by creating a single iteration with None date
+        date_ranges = self.date_range if self.date_range else [None]
+        
+        for event_date in date_ranges:
+            date_str = event_date.strftime("%Y-%m-%d") if event_date else None
             where_clause = self._build_where_clause(date_str)
             min_max_query = (
                 f"SELECT MIN({self.order_column}) as min_id, MAX({self.order_column}) as max_id "
@@ -35,7 +38,7 @@ class PostgresCollector(BaseDBCollector):
             max_id = min_max_df['max_id']
 
             if min_id is None or max_id is None:
-                self.logger.warning(f"No data for date {date_str}. Skipping.")
+                self.logger.warning(f"No data for {'whole table' if not event_date else f'date {date_str}'}. Skipping.")
                 continue
 
             est_num_partition = max(1, int((max_id - min_id + 1) / self.chunk_size))
@@ -59,12 +62,15 @@ class PostgresCollector(BaseDBCollector):
                 .load()
             
             self.logger.info(f"Read completed in {time.time() - start_time:.2f}s")
-            output_file = self._get_output_path(event_date)
+            output_file = self._get_output_path(event_date) if event_date else f"{self.output_path}/all"
             self.write_to_s3(df, output_file=output_file)
 
     def read_by_chunks_custom(self):
-        for event_date in self.date_range:
-            date_str = event_date.strftime("%Y-%m-%d")
+        # Handle empty date_range by creating a single iteration with None date
+        date_ranges = self.date_range if self.date_range else [None]
+        
+        for event_date in date_ranges:
+            date_str = event_date.strftime("%Y-%m-%d") if event_date else None
             where_clause = self._build_where_clause(date_str)
 
             max_query = f"""
@@ -112,12 +118,15 @@ class PostgresCollector(BaseDBCollector):
             df = df.drop("rn")
 
             self.logger.info(f"Read completed in {time.time() - start_time:.2f}s")
-            output_file = self._get_output_path(event_date)
+            output_file = self._get_output_path(event_date) if event_date else f"{self.output_path}/all"
             self.write_to_s3(df, output_file=output_file)
 
     def read_full(self):
-        for event_date in self.date_range:
-            date_str = event_date.strftime("%Y-%m-%d")
+        # Handle empty date_range by creating a single iteration with None date
+        date_ranges = self.date_range if self.date_range else [None]
+        
+        for event_date in date_ranges:
+            date_str = event_date.strftime("%Y-%m-%d") if event_date else None
             where_clause = self._build_where_clause(date_str)
             base_query = f"SELECT {self.selected_columns} FROM {self.table_name} {where_clause}"
 
@@ -131,22 +140,40 @@ class PostgresCollector(BaseDBCollector):
                 .load()
 
             self.logger.info("Read completed for no chunk.")
-            output_file = self._get_output_path(event_date)
+            output_file = self._get_output_path(event_date) if event_date else f"{self.output_path}/all"
             self.write_to_s3(df, output_file=output_file)
 
     def _build_where_clause(self, event_date):
-        if self.date_column and self.date_column_type and event_date:
+        if event_date and self.date_column and self.date_column_type:
             if self.date_column_type.lower() == 'date':
                 return f"WHERE DATE({self.date_column}) = '{event_date}'"
             # Added more date_column_type checks if needed here
         return ""
-    
-if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path', 'sns_topic_arn', 'start_date', 'end_date', 'date_column',
-        'jdbc_url', 'table_name', 'order_column', 'secret_name', 'chunk_size', 
-        'read_mode', 'selected_columns', 'fetch_size', 'max_partition'
-    ])
 
-    job = PostgresCollector(args)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--output_path", required=True)
+    parser.add_argument("--date_column", required=True)
+    parser.add_argument("--jdbc_url", required=True)
+    parser.add_argument("--table_name", required=True)
+
+    parser.add_argument("--sns_topic_arn", default=None)
+    parser.add_argument("--start_date", default=None)
+    parser.add_argument("--end_date", default=None)
+    parser.add_argument("--order_column", default=None)
+    parser.add_argument("--secret_name", default=None)
+    parser.add_argument("--chunk_size", type=int, default=None)
+    parser.add_argument("--read_mode", default=None)
+    parser.add_argument("--selected_columns", default=None)
+    parser.add_argument("--fetch_size", type=int, default=None)
+    parser.add_argument("--max_partition", type=int, default=None)
+
+    args = parser.parse_args()
+
+    # Convert to dict if bạn cần
+    args_dict = vars(args)
+
+    job = PostgresCollector(args_dict)
     job.run_with_exception_handling()

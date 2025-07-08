@@ -50,7 +50,8 @@ class BaseCollector:
 
     def _generate_date_ranges(self, start_date, end_date, date_format="%Y-%m-%d"):
         """Generate list of dates between start_date and end_date (inclusive)."""
-        
+        if not start_date or not end_date:
+            return []
         if isinstance(start_date, str):
             start_date = datetime.strptime(start_date, date_format)
         if isinstance(end_date, str):
