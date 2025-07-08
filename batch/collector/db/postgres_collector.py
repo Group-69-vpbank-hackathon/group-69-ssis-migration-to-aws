@@ -172,7 +172,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Convert to dict if bạn cần
     args_dict = vars(args)
 
     job = PostgresCollector(args_dict)
