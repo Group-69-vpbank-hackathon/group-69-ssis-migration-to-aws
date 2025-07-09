@@ -1,5 +1,5 @@
 import sys
-from batch.etl.core.base_processor import BaseProcessor
+from etl.core_modules.base.base_processor import BaseProcessor
 from awsglue.utils import getResolvedOptions
 
 class Loader(BaseProcessor):
@@ -13,7 +13,7 @@ class Loader(BaseProcessor):
 
 if __name__ == "__main__":
     args = getResolvedOptions(sys.argv, [
-        'input_path', 'file_format', 'output_path'
+        'input_path', 'file_format', 'output_path', 'start_date', 'en'
     ])
     job = Loader(args)
     job.run()

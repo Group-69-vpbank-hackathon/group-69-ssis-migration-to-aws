@@ -1,5 +1,5 @@
 import sys
-from batch.etl.core.base_processor import BaseProcessor
+from etl.core_modules.base.base_processor import BaseProcessor
 from awsglue.utils import getResolvedOptions
 
 class QualityChecker(BaseProcessor):
