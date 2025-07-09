@@ -69,7 +69,7 @@ class BaseCollector:
     def run_with_exception_handling(self):
         try:
             self.run()
-            self.send_notification(f"Glue Job succeeded: {self.job_name}")
+            self.logger.info(f"Glue Job succeeded: {self.job_name}")
         except Exception as e:
             error_message = f"Glue Job failed: {self.job_name} - {str(e)}"
             self.logger.error(error_message, exc_info=True)

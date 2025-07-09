@@ -16,17 +16,3 @@ class DynamoCollector(BaseNoSQLCollector):
         """Main execution method"""
         self.logger.info("Run DynamoDB data collection job.")
         return None
-
-if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path', 
-        'sns_topic_arn', 
-        'start_date', 
-        'end_date', 
-        'chunk_size',
-        'dynamodb_table_name',
-        'date_column'
-    ])
-
-    job = DynamoCollector(args)
-    job.run_with_exception_handling()

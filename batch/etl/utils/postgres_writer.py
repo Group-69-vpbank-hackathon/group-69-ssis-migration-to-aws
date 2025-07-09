@@ -31,9 +31,6 @@ class PostgresWriter(BaseDataWriter):
             "driver": self.POSTGRES_DRIVER
         }
         
-        print(f"Writing DataFrame to JDBC table: {self.table_name} at URL: {self.jdbc_url} with mode '{self.mode}'")
         df.write \
           .mode(self.mode) \
           .jdbc(url=self.jdbc_url, table=self.table_name, properties=properties)
-          
-        print("Write to JDBC completed.")

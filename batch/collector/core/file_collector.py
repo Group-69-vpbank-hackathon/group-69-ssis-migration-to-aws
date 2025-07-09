@@ -9,12 +9,3 @@ class FileCollector(BaseCollector):
     def run(self):
         return None
 
-
-if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path', 'sns_topic_arn', 'start_date', 'end_date',
-        'input_path', 'file_format'
-    ])
-
-    job = FileCollector(args)
-    job.run_with_exception_handling()

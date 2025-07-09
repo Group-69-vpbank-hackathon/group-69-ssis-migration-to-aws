@@ -49,13 +49,9 @@ class BaseProcessor(ABC):
             )
 
         return df
-   
-        
-    def _write(self, df, file_format="parquet"):
-        df.write \
-            .mode("overwrite") \
-            .format(file_format) \
-            .save(f"{self.output_path}/all")
+          
+    def _write(self, df):
+        self.data_writer.write(df)
 
     @abstractmethod
     def process(self):
@@ -79,12 +75,18 @@ class BaseProcessor(ABC):
             next_date += delta
         return report_dates
     
+    def send_notification(self, message):
+        # if self.sns_topic_arn:
+        #     boto3.client('sns').publish(TopicArn=self.sns_topic_arn, Message=message)
+        self.logger.info(f"Notification: {message}")
+
     def run(self):
         try:
             self.logger.info(f"Starting job: {self.job_name}")
             self.process()
             self.logger.info(f"Job succeeded: {self.job_name}")
         except Exception as e:
+            self.send_notification(f"Job failed: {self.job_name} - {str(e)}")
             self.logger.error(f"Job failed: {self.job_name} - {str(e)}", exc_info=True)
             raise
         finally:

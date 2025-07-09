@@ -10,9 +10,7 @@ class S3Writer(BaseDataWriter):
         self.file_format = file_format
         self.partition_column = partition_column
 
-    def write(self, df):
-        print(f"Writing DataFrame to S3 path: {self.output_path} with mode '{self.mode}'")
-        
+    def write(self, df):        
         if self.partition_column:
             df.write \
             .mode(self.mode) \
@@ -25,5 +23,3 @@ class S3Writer(BaseDataWriter):
             .mode(self.mode) \
             .format(self.file_format) \
             .save(f"{self.output_path}/all")
-            
-        print("Write to S3 completed.")

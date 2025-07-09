@@ -2,7 +2,7 @@ import argparse
 from etl.core_modules.base.base_processor import BaseProcessor
 from etl.utils.data_writer_factory import create_writer
 class Transformer(BaseProcessor):
-    JOB_NAME = 'transformer'
+    JOB_NAME = 'etl_transformer_job'
     
     def __init__(self, args, data_writer):
         super().__init__(args, self.JOB_NAME, data_writer)
@@ -39,23 +39,3 @@ class Transformer(BaseProcessor):
         self.data_writer.write(result_df)
 
         self.logger.info("Transformation completed successfully.")
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument("--script_file", required=True)
-    parser.add_argument("--data_sources", required=True)
-    parser.add_argument("--temp_views", required=True)
-    parser.add_argument("--data_writer", required=True)
-    
-    parser.add_argument("--output_path")
-    parser.add_argument("--jdbc_url")
-    parser.add_argument("--table_name")
-
-    args = parser.parse_args()
-    args_dict = vars(args)
-    
-    data_writer = create_writer(args_dict)
-
-    job = Transformer(args_dict, data_writer)
-    job.run()

@@ -27,11 +27,3 @@ class MySQLCollector(BaseDBCollector):
         self.logger.info("MySQL full read not implemented.")
         return None
     
-if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path', 'sns_topic_arn', 'start_date', 'end_date', 'date_column',
-        'jdbc_url', 'table_name', 'order_column','secret_name', 'chunk_size', 'max_partition'
-    ])
-
-    job = MySQLCollector(args)
-    job.run_with_exception_handling()

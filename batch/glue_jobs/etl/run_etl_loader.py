@@ -1,22 +1,6 @@
-import sys
-import argparse
-from etl.core_modules.base.base_processor import BaseProcessor
+from etl.core_modules.loader import Loader
 from etl.utils.data_writer_factory import create_writer
-
-
-class Loader(BaseProcessor):
-    JOB_NAME = 'loader'
-    
-    def __init__(self, args, data_writer):
-        super().__init__(args, self.JOB_NAME, data_writer)
-        self.partition_key = self.args.get("partition_key")
-        self.source_format = self.args.get("source_format")
-        self.target_format = self.args.get("target_format")
-
-    def process(self):
-        df = self._read(input_path=self.input_path, partition_key=self.partition_key, file_format=self.source_format)
-        # self._write(df, self.target_format)
-        self.data_writer.write(df)
+import argparse
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser()
@@ -34,5 +18,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = vars(args)
     data_writer = create_writer(args=args_dict)
+    
     job = Loader(args_dict, data_writer)
     job.run()
