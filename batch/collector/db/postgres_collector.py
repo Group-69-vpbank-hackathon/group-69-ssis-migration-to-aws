@@ -16,9 +16,12 @@ class PostgresCollector(BaseDBCollector):
     def run(self):
         self.read_and_write()
 
+    def _get_date_partition(self):
+        return self.date_range if self.date_range and self.date_column else [None]
+    
     def read_by_chunks_id(self):
         # Handle empty date_range by creating a single iteration with None date
-        date_ranges = self.date_range if self.date_range else [None]
+        date_ranges = self._get_date_partition()
         
         for event_date in date_ranges:
             date_str = event_date.strftime("%Y-%m-%d") if event_date else None
@@ -41,7 +44,7 @@ class PostgresCollector(BaseDBCollector):
                 self.logger.warning(f"No data for {'whole table' if not event_date else f'date {date_str}'}. Skipping.")
                 continue
 
-            est_num_partition = max(1, int((max_id - min_id + 1) / self.chunk_size))
+            est_num_partition = max(1, int((max_id - min_id + 1) // self.chunk_size) + 1)
             num_partition = min(est_num_partition, self.max_partition)
             self.logger.info(f"Total rows: {max_id - min_id}, numPartitions: {num_partition}")
             start_time = time.time()
@@ -67,7 +70,7 @@ class PostgresCollector(BaseDBCollector):
 
     def read_by_chunks_custom(self):
         # Handle empty date_range by creating a single iteration with None date
-        date_ranges = self.date_range if self.date_range else [None]
+        date_ranges = self._get_date_partition()
         
         for event_date in date_ranges:
             date_str = event_date.strftime("%Y-%m-%d") if event_date else None
@@ -123,7 +126,7 @@ class PostgresCollector(BaseDBCollector):
 
     def read_full(self):
         # Handle empty date_range by creating a single iteration with None date
-        date_ranges = self.date_range if self.date_range else [None]
+        date_ranges = self._get_date_partition()
         
         for event_date in date_ranges:
             date_str = event_date.strftime("%Y-%m-%d") if event_date else None
@@ -155,10 +158,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--output_path", required=True)
-    parser.add_argument("--date_column", required=True)
     parser.add_argument("--jdbc_url", required=True)
     parser.add_argument("--table_name", required=True)
 
+    parser.add_argument("--date_column", default=None)
     parser.add_argument("--sns_topic_arn", default=None)
     parser.add_argument("--start_date", default=None)
     parser.add_argument("--end_date", default=None)

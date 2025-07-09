@@ -79,7 +79,8 @@ class BaseCollector:
             self.job.commit()
 
     def _get_output_path(self, event_date):
-        return f"{self.output_path}/year={event_date.year}/month={event_date.month}/day={event_date.day}"
+        event_date_str = event_date.strftime("%Y-%m-%d")
+        return f"{self.output_path}/date={event_date_str}"
 
     def run(self):
         raise NotImplementedError("Subclasses must implement the run() method.")
