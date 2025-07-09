@@ -11,7 +11,8 @@ class Transformer(BaseProcessor):
         self.temp_views = self.args.get("temp_views")
         self.output_path = self.args.get("output_path")
 
-    def process(self):
+    def _register_temp_view(self):
+        self.logger.info("Register temp views.")
         sources = [s.strip() for s in self.data_sources.split(",")]
         views = [v.strip() for v in self.temp_views.split(",")]
 
@@ -22,15 +23,19 @@ class Transformer(BaseProcessor):
             self.logger.info(f"Reading {source} as {view}")
             df = self._read(input_path=source)
             df.createOrReplaceTempView(view)
-
+            
+    def _execute_query(self):
         self.logger.info(f"Reading SQL script from {self.script_file}")
         with open(self.script_file, "r") as f:
             sql_query = f.read()
 
         self.logger.info("Executing SQL query...")
         result_df = self.spark.sql(sql_query)
-
-        self.logger.info(f"Writing result to {self.output_path}")
+        return result_df
+        
+    def process(self):
+        self._register_temp_view()
+        result_df = self._execute_query()
         self.data_writer.write(result_df)
 
         self.logger.info("Transformation completed successfully.")
