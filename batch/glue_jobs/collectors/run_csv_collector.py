@@ -2,16 +2,19 @@ from collector.file.csv_collector import CsvCollector
 import argparse
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    args.add_argument("--input_path", required=True)
-    args.add_argument("--output_path", required=True)
-    args.add_argument("--partition_key")
-    args.add_argument("--sns_topic_arn")
-    args.add_argument("--start_date")
-    args.add_argument("--end_date")
-    args.add_argument("--date_column")
-    args.add_argument("--schema_json")
-    parsed = vars(args.parse_args())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_path", required=True)
+    parser.add_argument("--output_path", required=True)
+    
+    parser.add_argument("--partition_key", default=None)
+    parser.add_argument("--sns_topic_arn", default=None)
+    parser.add_argument("--start_date", default=None)
+    parser.add_argument("--end_date", default=None)
+    parser.add_argument("--date_column", default=None)
+    parser.add_argument("--schema_json", default=None)
 
-    job = CsvCollector(parsed)
+    args, unknown = parser.parse_known_args()
+    args_dict = vars(args)
+
+    job = CsvCollector(args_dict)
     job.run_with_exception_handling()

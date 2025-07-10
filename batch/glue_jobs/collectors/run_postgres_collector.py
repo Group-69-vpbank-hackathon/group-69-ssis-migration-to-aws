@@ -20,8 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--fetch_size", type=int, default=None)
     parser.add_argument("--max_partition", type=int, default=None)
 
-    args = parser.parse_args()
-
+    args, unknown = parser.parse_known_args()
     args_dict = vars(args)
 
     job = PostgresCollector(args_dict)

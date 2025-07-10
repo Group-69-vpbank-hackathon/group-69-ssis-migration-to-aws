@@ -17,16 +17,3 @@ class ParquetCollector(FileCollector):
         self.logger.info("Starting ParquetCollector job...")
         return None
 
-if __name__ == "__main__":
-    args = getResolvedOptions(sys.argv, [
-        'output_path',
-        'sns_topic_arn',
-        'start_date',
-        'end_date',
-        'input_path',
-        'file_format',
-        'date_column',
-    ])
-
-    job = ParquetCollector(args)
-    job.run_with_exception_handling()

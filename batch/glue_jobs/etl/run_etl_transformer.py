@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("--jdbc_url")
     parser.add_argument("--table_name")
 
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     args_dict = vars(args)
     
     data_writer = create_writer(args_dict)
