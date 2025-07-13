@@ -18,29 +18,19 @@ def connect_postgres():
         host=os.getenv("PG_HOST"),
         port=os.getenv("PG_PORT")
     )
-
 def fake_string(length=10):
     return fake.lexify(text="?" * length)
 
 # --------------------- Fake
-def fake_common_fields_header():
-    return {
-        "REF_NO": fake.uuid4(),
-        "BUSINESS_DATE": datetime.today().strftime("%Y-%m-%d"),
-    }
+def generate_shared_ref_list(n):
+    """Sinh n REF_NO dùng chung cho bảng chính và phụ"""
+    today = datetime.today().strftime("%Y-%m-%d")
+    return [{"REF_NO": fake.uuid4(), "BUSINESS_DATE": today} for _ in range(n)]
 
-def fake_common_fields_detail():
+## --- fake_tmp_efz_ft
+def fake_tmp_efz_ft_his(ref_entry):
     return {
-        "REF_NO": fake.uuid4(),
-        "M": random.randint(0, 59),
-        "S": random.randint(0, 59),
-        "DATE_TIME": fake.date_time().strftime("%Y-%m-%d %H:%M:%S"),
-        "BUSINESS_DATE": datetime.today().strftime("%Y-%m-%d"),
-    }
-
-def fake_tmp_efz_ft_his():
-    return {
-        **fake_common_fields_header(),
+        **ref_entry,
         "TRANSACTION_TYPE": random.choice(["TRANSFER", "WITHDRAWAL", "DEPOSIT"]),
         "DEBIT_ACCT_NO": fake.bban(),
         "DEBIT_CURRENCY": random.choice(["VND", "USD", "EUR"]),
@@ -94,10 +84,12 @@ def fake_tmp_efz_ft_his():
         "DEPT_CODE": fake.bothify(text="DPT##"),
         "VPB_INPUTTER": fake.name()
     }
-
-def fake_tmp_efz_ft_his_details():
+def fake_tmp_efz_ft_his_details(ref_entry):
     return {
-        **fake_common_fields_detail(),
+        **ref_entry,
+        "M": random.randint(0, 59),
+        "S": random.randint(0, 59),
+        "DATE_TIME": fake.iso8601(),
         "PAYMENT_DETAILS": fake.text(100),
         "TXN_DETAIL_VPB": fake.text(100),
         "TXN_DETAIL": fake.text(100),
@@ -112,9 +104,10 @@ def fake_tmp_efz_ft_his_details():
         "COMMISSION_AMT": str(random.randint(1000, 5000))
     }
 
-def fake_tmp_efz_ft_after_cob():
+## --- fake_tmp_efz_ft
+def fake_tmp_efz_ft_after_cob(ref_entry):
     return {
-        **fake_common_fields_header(),
+        **ref_entry,
         "TRANSACTION_TYPE": fake.word(),
         "DEBIT_ACCT_NO": fake.bban(),
         "DEBIT_CURRENCY": "VND",
@@ -184,10 +177,9 @@ def fake_tmp_efz_ft_after_cob():
         "AT_MC_TRANS": fake.lexify(text="TRN####"),
         "TOTAL_TAX_AMOUNT": str(random.randint(1000, 10000))
     }
-
-def fake_tmp_efz_ft_after_cob_details():
+def fake_tmp_efz_ft_after_cob_details(ref_entry):
     return {
-        **fake_common_fields_detail(),
+        **ref_entry,
         "PAYMENT_DETAILS": fake.text(100),
         "TXN_DETAIL_VPB": fake.text(100),
         "TXN_DETAIL": fake.text(100),
@@ -207,9 +199,23 @@ def fake_tmp_efz_ft_after_cob_details():
         "COMMISSION_AMT": str(random.randint(1000, 5000))
     }
 
-def fake_tmp_efz_funds_transfer():
+## --- fake_tmp_efz_ft
+def fake_common_fields_detail(ref_entry):
     return {
-        **fake_common_fields_header(),
+        "REF_NO": ref_entry["REF_NO"],
+        "M": random.randint(0, 59),
+        "S": random.randint(0, 59),
+        "DATE_TIME": fake.date_time().strftime("%Y-%m-%d %H:%M:%S"),
+        "BUSINESS_DATE": ref_entry["BUSINESS_DATE"],
+    }
+def fake_common_fields_header():
+    return {
+        "REF_NO": fake.uuid4(),
+        "BUSINESS_DATE": datetime.today().strftime("%Y-%m-%d"),
+    }
+def fake_tmp_efz_funds_transfer(ref_entry):
+    return {
+        **ref_entry,
         "TRANSACTION_TYPE": fake.word(),
         "DEBIT_ACCT_NO": fake.bban(),
         "DEBIT_CURRENCY": "VND",
@@ -262,10 +268,9 @@ def fake_tmp_efz_funds_transfer():
         "DEPT_CODE": fake.bothify(text="DPT##"),
         "VPB_INPUTTER": fake.name()
     }
-
-def fake_tmp_efz_funds_transfer_details():
+def fake_tmp_efz_funds_transfer_details(ref_entry):
     return {
-        **fake_common_fields_detail(),
+        **fake_common_fields_detail(ref_entry),
         "PAYMENT_DETAILS": fake.text(100),
         "TXN_DETAIL_VPB": fake.text(100),
         "TXN_DETAIL": fake.text(100),
@@ -279,6 +284,75 @@ def fake_tmp_efz_funds_transfer_details():
         "SENDING_ADDR": fake.address(),
         "COMMISSION_AMT": str(random.randint(1000, 5000))
     }
+
+
+# --------------------- Insert func
+def insert_fake_linked_rows(n=5):
+    ref_entries = generate_shared_ref_list(n)
+    conn = connect_postgres()
+    cur = conn.cursor()
+
+    for ref in tqdm(ref_entries, ncols=100, colour="cyan", desc="Linked Insert"):
+        # Insert vào bảng chính
+        his_row = fake_tmp_efz_ft_his(ref)
+        his_cols = ', '.join(f'"{k}"' for k in his_row)
+        his_vals = ', '.join(['%s'] * len(his_row))
+        cur.execute(f'INSERT INTO "TMP_EFZ_FT_HIS" ({his_cols}) VALUES ({his_vals})', list(his_row.values()))
+
+        # Insert 1 hoặc nhiều bản ghi phụ (tùy bạn điều chỉnh số lượng)
+        for _ in range(random.randint(1, 3)):
+            detail_row = fake_tmp_efz_ft_his_details(ref)
+            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
+            detail_vals = ', '.join(['%s'] * len(detail_row))
+            cur.execute(f'INSERT INTO "TMP_EFZ_FT_HIS_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+def insert_fake_after_cob_data(n=10):
+    ref_entries = generate_shared_ref_list(n)
+    conn = connect_postgres()
+    cur = conn.cursor()
+
+    for ref in tqdm(ref_entries, desc="AFTER_COB Insert", ncols=100, colour="yellow"):
+        # Bảng chính
+        main_row = fake_tmp_efz_ft_after_cob(ref)
+        main_cols = ', '.join(f'"{k}"' for k in main_row)
+        main_vals = ', '.join(['%s'] * len(main_row))
+        cur.execute(f'INSERT INTO "TMP_EFZ_FT_AFTER_COB" ({main_cols}) VALUES ({main_vals})', list(main_row.values()))
+
+        # 1-3 bản ghi phụ
+        for _ in range(random.randint(1, 3)):
+            detail_row = fake_tmp_efz_ft_after_cob_details(ref)
+            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
+            detail_vals = ', '.join(['%s'] * len(detail_row))
+            cur.execute(f'INSERT INTO "TMP_EFZ_FT_AFTER_COB_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+def insert_fake_funds_transfer_data(n=10):
+    ref_entries = [fake_common_fields_header() for _ in range(n)]
+    conn = connect_postgres()
+    cur = conn.cursor()
+
+    for ref in tqdm(ref_entries, desc="FUNDS_TRANSFER Insert", ncols=100, colour="blue"):
+        # Insert bản ghi chính
+        main_row = fake_tmp_efz_funds_transfer(ref)
+        main_cols = ', '.join(f'"{k}"' for k in main_row)
+        main_vals = ', '.join(['%s'] * len(main_row))
+        cur.execute(f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER" ({main_cols}) VALUES ({main_vals})', list(main_row.values()))
+
+        # Insert 1-3 bản ghi phụ
+        for _ in range(random.randint(1, 3)):
+            detail_row = fake_tmp_efz_funds_transfer_details(ref)
+            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
+            detail_vals = ', '.join(['%s'] * len(detail_row))
+            cur.execute(f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # --------------------- insert
 def insert_fake_rows(table, row_generator, n=5):
@@ -301,9 +375,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     n_sample = int(args.n_sample)
     print(f'🚀 Generate with {n_sample} sample data')
-    insert_fake_rows("TMP_EFZ_FT_HIS", fake_tmp_efz_ft_his, n=n_sample)
-    insert_fake_rows("TMP_EFZ_FT_HIS_DETAILS", fake_tmp_efz_ft_his_details, n=n_sample)
-    insert_fake_rows("TMP_EFZ_FT_AFTER_COB", fake_tmp_efz_ft_after_cob, n=n_sample)
-    insert_fake_rows("TMP_EFZ_FT_AFTER_COB_DETAILS", fake_tmp_efz_ft_after_cob_details, n=n_sample)
-    insert_fake_rows("TMP_EFZ_FUNDS_TRANSFER", fake_tmp_efz_funds_transfer, n=n_sample)
-    insert_fake_rows("TMP_EFZ_FUNDS_TRANSFER_DETAILS", fake_tmp_efz_funds_transfer_details, n=n_sample)
+    insert_fake_linked_rows(n=n_sample)
+    insert_fake_after_cob_data(n=n_sample)
+    insert_fake_funds_transfer_data(n=n_sample)
