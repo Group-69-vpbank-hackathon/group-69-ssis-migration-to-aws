@@ -10,8 +10,8 @@ class PostgresCollector(BaseDBCollector):
 
     def __init__(self, args):
         super().__init__(args, self.JOB_NAME)
-        self.fetch_size = int(args.get('fetch_size', '10000'))
-        self.max_partition = int(args.get('max_partition', '16'))
+        self.fetch_size = int(args.get('fetch_size') or 10000)
+        self.max_partition = int(args.get('max_partition') or 16)
 
     def run(self):
         self.read_and_write()

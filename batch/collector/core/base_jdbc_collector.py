@@ -8,19 +8,18 @@ class BaseDBCollector(BaseCollector):
 
         self.jdbc_url = args['jdbc_url']
         self.table_name = args['table_name']
-        self.selected_columns = args.get('selected_columns', '*').lower()
-        # self.secret = self.get_secret(args['secret_name'])
+        self.selected_columns = (args.get('selected_columns') or '*').lower()
+        self.secret = self.get_secret(args['secret_name'])
 
-        # self.username = self.secret['db_username']
-        # self.password = self.secret['db_password']
+        self.username = self.secret['db_username']
+        self.password = self.secret['db_password']
         
-        self.username = 'testuser'
-        self.password = 'testpass'
 
-        self.chunk_size = int(args.get('chunk_size', '1000000'))
+        self.chunk_size = int(args.get('chunk_size') or '1000000')
         self.order_column = args.get('order_column', 'id')
-        self.read_mode = args.get('read_mode', 'full').lower()
-        self.max_partition = int(args.get('max_partition', '16'))
+        self.read_mode = (args.get('read_mode') or 'full').lower()
+        
+        self.max_partition = int(args.get('max_partition') or '16')
 
     def read_and_write(self):
         self.logger.info(f"Reading data from {self.table_name} in {self.read_mode} mode.")

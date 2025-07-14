@@ -9,16 +9,16 @@ def create_writer(args: dict):
     writer = args.get("data_writer")
     if writer == 'postgres':
         return PostgresWriter(
-            url=args['jdbc_url'],
-            table=args['table_name'],
+            jdbc_url=args.get('jdbc_url'),
+            table=args.get('table_name'),
             secret_name=args.get('secret_name'),
-            mode=args.get('write_mode', 'overwrite')
+            batch_size=int(args.get('batch_size', 1000)),
+            target_partitions=int(args.get('target_partitions', 4))
         )
     elif writer == 's3':
         return S3Writer(
-            output_path=args['output_path'],
+            output_path=args.get('output_path'),
             partition_column=args.get('partition_column', None),
-            mode=args.get('write_mode', 'overwrite'),
             file_format=args.get('target_format', 'parquet')
         )
     else:

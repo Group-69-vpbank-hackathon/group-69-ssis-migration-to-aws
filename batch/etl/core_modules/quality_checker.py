@@ -1,6 +1,5 @@
 import sys
 from etl.core_modules.base.base_processor import BaseProcessor
-from awsglue.utils import getResolvedOptions
 from pyspark.sql.functions import sum
 
 class QualityChecker(BaseProcessor):

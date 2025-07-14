@@ -6,7 +6,7 @@ import logging
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from pyspark.context import SparkContext
-from awsglue.utils import getResolvedOptions
+from common.utils.helper import generate_date_ranges
 
 class BaseCollector:
     """BaseCollector is an abstract class for reading data from various sources and writing to S3."""
@@ -14,21 +14,39 @@ class BaseCollector:
     def __init__(self, args, job_name):
         self.args = args
         self.job_name = job_name
+        self.logger = self._setup_logger()
+
         self.output_path = args['output_path']
         self.sns_topic_arn = args.get('sns_topic_arn')
         
+        self.lookback = args.get('lookback')
+        self.rolling_window = args.get('rolling_window')
+
         self.start_date = args.get('start_date')
         self.end_date = args.get('end_date')
+
         self.date_column = args.get('date_column')
-        self.date_column_type = args.get('date_column_type', 'date')
-        self.date_range = self._generate_date_ranges(self.start_date, self.end_date)
+        self.date_column_type = (args.get('date_column_type') or 'date').lower()
+        self.date_format = (args.get('date_format') or 'default').lower()
+        self.date_range = self._calculate_date_range()
 
         self.glue_context = GlueContext(SparkContext.getOrCreate())
         self.spark = self.glue_context.spark_session
         self.job = Job(self.glue_context)
         self.job.init(self.job_name, args)
 
-        self.logger = self._setup_logger()
+
+    def _calculate_date_range(self):
+        if self.start_date and self.end_date:
+            self.logger.info(f"Using start_date: {self.start_date} and end_date: {self.end_date}")
+            return generate_date_ranges(self.start_date, self.end_date, self.date_format)
+        if self.lookback is not None and self.rolling_window is not None:
+            self.logger.info(f"Using lookback: {self.lookback} and rolling_window:")
+            self.end_date = (datetime.now() - timedelta(days=int(self.lookback)))
+            self.start_date = (self.end_date - timedelta(days=int(self.rolling_window))).strftime("%Y-%m-%d")
+            self.end_date = self.end_date.strftime("%Y-%m-%d")
+            self.logger.info(f"Calculated start_date: {self.start_date} and end_date: {self.end_date}")
+            return generate_date_ranges(self.start_date, self.end_date, "default")
 
     def _setup_logger(self):
         logging.basicConfig(level=logging.INFO)
@@ -48,23 +66,6 @@ class BaseCollector:
         #     boto3.client('sns').publish(TopicArn=self.sns_topic_arn, Message=message)
         self.logger.info(f"Notification: {message}")
 
-    def _generate_date_ranges(self, start_date, end_date, date_format="%Y-%m-%d"):
-        """Generate list of dates between start_date and end_date (inclusive)."""
-        if not start_date or not end_date:
-            return []
-        if isinstance(start_date, str):
-            start_date = datetime.strptime(start_date, date_format)
-        if isinstance(end_date, str):
-            end_date = datetime.strptime(end_date, date_format)
-
-        report_dates = []
-        next_date = start_date
-        delta = timedelta(days=1)
-
-        while next_date <= end_date:
-            report_dates.append(next_date)
-            next_date += delta
-        return report_dates
     
     def run_with_exception_handling(self):
         try:

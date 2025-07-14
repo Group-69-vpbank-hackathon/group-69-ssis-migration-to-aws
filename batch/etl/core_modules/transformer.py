@@ -1,7 +1,5 @@
-import argparse
 import boto3
 from etl.core_modules.base.base_processor import BaseProcessor
-from etl.utils.data_writer_factory import create_writer
 
 class Transformer(BaseProcessor):
     JOB_NAME = 'etl_transformer_job'

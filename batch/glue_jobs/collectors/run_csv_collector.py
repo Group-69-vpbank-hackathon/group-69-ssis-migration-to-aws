@@ -8,8 +8,12 @@ if __name__ == "__main__":
     
     parser.add_argument("--partition_key", default=None)
     parser.add_argument("--sns_topic_arn", default=None)
+    parser.add_argument("--lookback", default=None)
+    parser.add_argument("--rolling_window", default=None)
+    parser.add_argument("--granularity", default="daily")
     parser.add_argument("--start_date", default=None)
     parser.add_argument("--end_date", default=None)
+    parser.add_argument("--date_format", default=None)
     parser.add_argument("--date_column", default=None)
     parser.add_argument("--schema_json", default=None)
 

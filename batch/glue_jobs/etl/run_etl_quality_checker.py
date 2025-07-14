@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("--target_column", required=True)
     parser.add_argument("--accepted_accuracy", required=True)
     parser.add_argument("--sns_topic_arn", required=True)
-
+    
     args, unknown = parser.parse_known_args()
     args_dict = vars(args)
 

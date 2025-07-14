@@ -5,30 +5,50 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql.functions import lit, col
-
+from common.utils.helper import generate_date_ranges
 
 class BaseProcessor(ABC):
     def __init__(self, args, job_name, data_writer):
         self.args = args
         self.job_name = job_name
+        self.logger = self._setup_logger()
         self.data_writer = data_writer
+
         self.input_path = args.get('input_path')
         self.output_path = args.get('output_path')
         
+        self.lookback = args.get('lookback')
+        self.rolling_window = args.get('rolling_window')
         self.start_date = args.get('start_date')
         self.end_date = args.get('end_date')
-        self.date_range = self._generate_date_ranges(self.start_date, self.end_date)
+        self.date_format = (args.get('date_format') or 'default').lower()
+        self.granuarity = (args.get('granularity') or  'daily').lower()
+
+        self.date_range = self._calculate_date_range()
         
         self.glue_context = GlueContext(SparkContext.getOrCreate())
         self.spark = self.glue_context.spark_session
         self.job = Job(self.glue_context)
         self.job.init(self.job_name, args)
-        self.logger = self._setup_logger()
+        
+        self.data_writer.set_spark_session(self.spark)
 
     def _setup_logger(self):
         logging.basicConfig(level=logging.INFO)
         return logging.getLogger(self.job_name)
 
+    def _calculate_date_range(self):
+        if self.start_date and self.end_date:
+            self.logger.info(f"Using start_date: {self.start_date} and end_date: {self.end_date}")
+            return generate_date_ranges(self.start_date, self.end_date, self.date_format)
+        if self.lookback is not None and self.rolling_window is not None:
+            self.logger.info(f"Using lookback: {self.lookback} and rolling_window:")
+            self.end_date = (datetime.now() - timedelta(days=int(self.lookback)))
+            self.start_date = (self.end_date - timedelta(days=int(self.rolling_window))).strftime("%Y-%m-%d")
+            self.end_date = self.end_date.strftime("%Y-%m-%d")
+            self.logger.info(f"Calculated start_date: {self.start_date} and end_date: {self.end_date}")
+            return generate_date_ranges(self.start_date, self.end_date, "default")
+    
     def _read(self, input_path, partition_key=None, file_format="parquet"):
         self.logger.info(f"Reading {input_path} as {file_format}")
 
@@ -91,3 +111,5 @@ class BaseProcessor(ABC):
             raise
         finally:
             self.job.commit()
+            
+    
