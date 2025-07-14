@@ -1,0 +1,10 @@
+{
+  "Variables": {
+    "PG_HOST": "aws-0-ap-southeast-1.pooler.supabase.com",
+    "PG_PORT": "5432",
+    "PG_USER": "postgres.dwxxibqmtfibnipthgdo",
+    "PG_PASS": "8b2bb1e2390743f55ff60b7c9cb6665d",
+    "PG_DB": "postgres",
+    "S3_BUCKET": "backup-s3"
+  }
+}
