@@ -1,0 +1,71 @@
+{
+  "rules": [
+    {
+      "rule-type": "selection",
+      "rule-id": "1",
+      "rule-name": "1",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FT_HIS"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "2",
+      "rule-name": "2",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FT_HIS_DETAILS"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "3",
+      "rule-name": "3",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FT_AFTER_COB"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "4",
+      "rule-name": "4",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FT_AFTER_COB_DETAILS"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "5",
+      "rule-name": "5",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FUNDS_TRANSFER_DETAILS"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "6",
+      "rule-name": "6",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "TMP_EFZ_FT_STATUS"
+      },
+      "rule-action": "include",
+      "filters": []
+    }
+  ]
+}
+  
