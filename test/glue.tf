@@ -2,9 +2,9 @@ resource "aws_glue_connection" "vpc_network_config" {
   name            = "${var.project_name}-vpc-connection"
   connection_type = "NETWORK"
   physical_connection_requirements {
-    subnet_id              = aws_subnet.private_subnet.id
+    subnet_id              = aws_subnet.private_subnet_1.id
     security_group_id_list = [aws_security_group.glue_sg.id]
-    availability_zone      = aws_subnet.private_subnet.availability_zone
+    availability_zone      = aws_subnet.private_subnet_1.availability_zone
   }
 }
 

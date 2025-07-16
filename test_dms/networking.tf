@@ -1,124 +1,47 @@
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-
 ############################
-# VPC
+# Data sources to reference Glue VPC
 ############################
 
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+# Option 1: Using remote state (recommended if using same backend)
+# data "terraform_remote_state" "glue" {
+#   backend = "s3"  # or whatever backend you're using
+#   config = {
+#     bucket = "your-terraform-state-bucket"
+#     key    = "test/terraform.tfstate"
+#     region = "us-east-1"
+#   }
+# }
 
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-vpc"
-  })
-}
-
-############################
-# Subnets
-############################
-
-resource "aws_subnet" "public" {
-  count                   = 2
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 10}.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-public-subnet-${count.index + 1}"
-  })
-}
-
-resource "aws_subnet" "private" {
-  count             = 2
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.${count.index + 1}.0/24"
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-private-subnet-${count.index + 1}"
-  })
-}
-
-############################
-# Internet Gateway
-############################
-
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-  tags   = merge(local.common_tags, {
-    Name = "${local.name_prefix}-igw"
-  })
-}
-
-############################
-# Elastic IP for NAT
-############################
-
-resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-nat-eip"
-  })
-}
-
-############################
-# NAT Gateway
-############################
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-nat-gw"
-  })
-}
-
-############################
-# Route Tables
-############################
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+# Option 2: Using data sources to lookup existing resources
+data "aws_vpc" "glue_vpc" {
+  filter {
+    name   = "tag:Name"
+    values = ["vph-group69_001-vpc"]  # This should match the VPC name from Glue
   }
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-public-rt"
-  })
 }
 
-resource "aws_route_table_association" "public" {
-  count          = 2
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+data "aws_subnets" "private_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.glue_vpc.id]
   }
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-private-rt"
-  })
+  
+  filter {
+    name   = "tag:Name"
+    values = ["*private*"]
+  }
 }
 
-resource "aws_route_table_association" "private" {
-  count          = 2
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+data "aws_subnets" "public_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.glue_vpc.id]
+  }
+  
+  filter {
+    name   = "tag:Name"
+    values = ["*public*"]
+  }
 }
 
 ############################
@@ -127,16 +50,29 @@ resource "aws_route_table_association" "private" {
 
 resource "aws_security_group" "dms_sg" {
   name_prefix = "${local.name_prefix}-dms-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.glue_vpc.id
+  description = "Security group for DMS replication instance"
 
+  # Inbound rules for database connections
   ingress {
+    description = "PostgreSQL from VPC"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # hoặc Supabase IP nếu biết
+    cidr_blocks = [data.aws_vpc.glue_vpc.cidr_block]
   }
 
+  ingress {
+    description = "PostgreSQL from external (Supabase)"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Consider restricting to Supabase IP ranges if known
+  }
+
+  # Outbound rules
   egress {
+    description = "All outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -150,16 +86,21 @@ resource "aws_security_group" "dms_sg" {
 
 resource "aws_security_group" "lambda_sg" {
   name_prefix = "${local.name_prefix}-lambda-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.glue_vpc.id
+  description = "Security group for Lambda functions"
 
+  # Inbound rules - allow traffic from within VPC
   ingress {
+    description = "All traffic from VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [aws_vpc.main.cidr_block]
+    cidr_blocks = [data.aws_vpc.glue_vpc.cidr_block]
   }
 
+  # Outbound rules
   egress {
+    description = "All outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -169,4 +110,72 @@ resource "aws_security_group" "lambda_sg" {
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-lambda-sg"
   })
+}
+
+############################
+# VPC Endpoints (if needed for DMS)
+############################
+
+# VPC Endpoint for DMS (if not already exists in Glue VPC)
+resource "aws_vpc_endpoint" "dms" {
+  vpc_id              = data.aws_vpc.glue_vpc.id
+  service_name        = "com.amazonaws.us-east-1.dms"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = data.aws_subnets.private_subnets.ids
+  security_group_ids  = [aws_security_group.dms_sg.id]
+  
+  private_dns_enabled = true
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-dms-endpoint"
+  })
+}
+
+# VPC Endpoint for Kinesis (if not already exists)
+resource "aws_vpc_endpoint" "kinesis_streams" {
+  vpc_id              = data.aws_vpc.glue_vpc.id
+  service_name        = "com.amazonaws.us-east-1.kinesis-streams"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = data.aws_subnets.private_subnets.ids
+  security_group_ids  = [aws_security_group.dms_sg.id]
+  
+  private_dns_enabled = true
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-kinesis-streams-endpoint"
+  })
+}
+
+############################
+# Outputs for reference
+############################
+
+output "vpc_id" {
+  description = "ID of the shared VPC"
+  value       = data.aws_vpc.glue_vpc.id
+}
+
+output "vpc_cidr_block" {
+  description = "CIDR block of the shared VPC"
+  value       = data.aws_vpc.glue_vpc.cidr_block
+}
+
+output "private_subnet_ids" {
+  description = "IDs of the private subnets"
+  value       = data.aws_subnets.private_subnets.ids
+}
+
+output "public_subnet_ids" {
+  description = "IDs of the public subnets"
+  value       = data.aws_subnets.public_subnets.ids
+}
+
+output "dms_security_group_id" {
+  description = "ID of the DMS security group"
+  value       = aws_security_group.dms_sg.id
+}
+
+output "lambda_security_group_id" {
+  description = "ID of the Lambda security group"
+  value       = aws_security_group.lambda_sg.id
 }
