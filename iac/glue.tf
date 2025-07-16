@@ -17,10 +17,12 @@ resource "aws_glue_job" "csv_collector" {
     python_version  = "3"
   }
   max_capacity = 2
-  max_concurrent_runs = 5
   glue_version = "3.0"
 
-  connections = [aws_glue_connection.vpc_network_config.name]
+  connections = [
+    aws_glue_connection.vpc_network_config.name,
+    aws_glue_connection.postgres_jdbc_connection.name
+  ]
 
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
@@ -37,10 +39,12 @@ resource "aws_glue_job" "postgres_collector" {
     python_version  = "3"
   }
   max_capacity = 2
-  max_concurrent_runs = 5
   glue_version = "3.0"
   
-  connections = [aws_glue_connection.vpc_network_config.name]
+  connections = [
+    aws_glue_connection.vpc_network_config.name,
+    aws_glue_connection.postgres_jdbc_connection.name
+  ]
   
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
@@ -57,10 +61,12 @@ resource "aws_glue_job" "etl_loader" {
     python_version  = "3"
   }
   max_capacity = 2
-  max_concurrent_runs = 5
   glue_version = "3.0"
 
-  connections = [aws_glue_connection.vpc_network_config.name]
+  connections = [
+    aws_glue_connection.vpc_network_config.name,
+    aws_glue_connection.postgres_jdbc_connection.name
+  ]
 
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
@@ -77,10 +83,12 @@ resource "aws_glue_job" "etl_transformer" {
     python_version  = "3"
   }
   max_capacity = 2
-  max_concurrent_runs = 5
   glue_version = "3.0"
 
-  connections = [aws_glue_connection.vpc_network_config.name]
+  connections = [
+    aws_glue_connection.vpc_network_config.name,
+    aws_glue_connection.postgres_jdbc_connection.name
+  ]
 
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
@@ -97,10 +105,12 @@ resource "aws_glue_job" "etl_quality_checker" {
     python_version  = "3"
   }
   max_capacity = 2
-  max_concurrent_runs = 5
   glue_version = "3.0"
 
-  connections = [aws_glue_connection.vpc_network_config.name]
+  connections = [
+    aws_glue_connection.vpc_network_config.name,
+    aws_glue_connection.postgres_jdbc_connection.name
+  ]
 
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"

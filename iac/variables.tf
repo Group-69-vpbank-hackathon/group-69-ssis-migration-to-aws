@@ -4,6 +4,31 @@ variable "project_name" {
   default     = "vph-group69"
 }
 
+variable "region" {
+  description = "region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "availability_zones" {
+  description = "List of Availability Zones to use"
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+}
+
+variable "postgres_username" {
+  description = "Master username for RDS Postgres"
+  type        = string
+  default     = "postgres"
+}
+
+variable "postgres_password" {
+  description = "Master password for RDS Postgres"
+  type        = string
+  sensitive   = true
+  default     = "postgres"
+}
+
 variable "glue_bucket" {
   description = "S3 bucket để chứa glue scripts"
   type        = string

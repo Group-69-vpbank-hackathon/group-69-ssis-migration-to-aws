@@ -120,3 +120,69 @@ resource "aws_iam_role_policy_attachment" "sfn_glue_policy_attach" {
   role       = aws_iam_role.sfn_exec_role.name
   policy_arn = aws_iam_policy.sfn_glue_policy.arn
 }
+
+
+# IAM Role cho DMS truy cập Kinesis
+resource "aws_iam_role" "dms_kinesis_role" {
+  name = "${var.project_name}-dms-kinesis-role"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = {
+        Service = "dms.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "dms_kinesis_policy" {
+  role       = aws_iam_role.dms_kinesis_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonKinesisFullAccess"
+}
+
+# IAM Role cho DMS truy cập Secrets Manager
+resource "aws_iam_role" "dms_secrets_role" {
+  name = "${var.project_name}-dms-secrets-role"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = {
+        Service = "dms.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "dms_secrets_policy" {
+  role       = aws_iam_role.dms_secrets_role.name
+  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+}
+
+resource "aws_iam_policy" "glue_rds_access" {
+  name        = "glue_rds_access_policy"
+  description = "Allow Glue to access RDS Postgres"
+  
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "rds-db:connect"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "glue_rds_policy_attach" {
+  role       = aws_iam_role.glue_service_role.name
+  policy_arn = aws_iam_policy.glue_rds_access.arn
+}
