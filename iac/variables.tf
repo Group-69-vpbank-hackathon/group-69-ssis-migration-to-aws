@@ -29,10 +29,17 @@ variable "postgres_password" {
   default     = "postgres"
 }
 
+variable "postgres_db_name" {
+  description = "Database name for RDS Postgres"
+  type        = string
+  sensitive   = true
+  default     = "postgres"
+}
+
 variable "glue_bucket" {
   description = "S3 bucket để chứa glue scripts"
   type        = string
-  default     = "vph-group69-glue-jobs"
+  default     = "vph-group69-glue-jobs-bucket"
 }
 
 variable "data_source_bucket" {
@@ -64,3 +71,46 @@ variable "gold_zone_bucket" {
   type        = string
   default     = "vph-group69-gold-zone"
 }
+
+variable "backup_streaming_zone_bucket" {
+  description = "S3 bucket để chứa data backup cho stream"
+  type        = string
+  default     = "vph-group69-backup-streaming-zone"
+}
+
+variable "lambda_artifacts_bucket" {
+  description = "S3 bucket để chứa code lambda"
+  type        = string
+  default     = "vph-group69-lambda-artifacts"
+}
+
+variable "streaming_failover_bucket" {
+  description = "S3 bucket để chứa data stream failover"
+  type        = string
+  default     = "vph-group69-streaming-failover"
+}
+
+variable "terraform_backend_bucket" {
+  description = "S3 bucket để terraform_backend"
+  type        = string
+  default     = "vph-group69-terraform-backend"
+}
+
+variable "bastion_ami_id" {
+  description = "AMI ID for bastion EC2 (e.g. Amazon Linux 2023)"
+  type        = string
+  default     = "ami-0c101f26f147fa7fd"
+}
+
+variable "ssh_key_bastion_eod" {
+  description = "AMI ID for bastion EC2 (e.g. Amazon Linux 2023)"
+  type        = string
+  default     = "bastion-eod-key"
+}
+
+variable "ssh_key_bastion_db_app" {
+  description = "AMI ID for bastion EC2 (e.g. Amazon Linux 2023)"
+  type        = string
+  default     = "bastion-db-app-key"
+}
+
