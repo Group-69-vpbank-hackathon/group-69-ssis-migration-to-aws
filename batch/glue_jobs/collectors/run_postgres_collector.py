@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument("--date_format", default=None)
     parser.add_argument("--order_column", default=None)
     parser.add_argument("--secret_name", default=None)
-    
+
     parser.add_argument("--chunk_size", type=int, default=None)
     parser.add_argument("--read_mode", default=None)
     parser.add_argument("--selected_columns", default=None)

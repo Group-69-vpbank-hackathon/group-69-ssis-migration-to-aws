@@ -10,6 +10,7 @@ from kinesis_consumer.handler import TABLE_HANDLERS
 
 DLQ_URL = os.environ["DLQ_URL"]
 
+
 def lambda_handler(event, context):
     conn, cur = get_pg_connection()
     records_by_table = defaultdict(list)
@@ -31,9 +32,9 @@ def lambda_handler(event, context):
         for table, records in records_by_table.items():
             handler = TABLE_HANDLERS.get(table, TABLE_HANDLERS["__default__"])
             handler(records, cur, conn)
-        
+
         cur.close()
-        conn.close() 
+        conn.close()
     except Exception as e:
         print(f"❌ Error handling table {table}: {e}")
         cur.close()

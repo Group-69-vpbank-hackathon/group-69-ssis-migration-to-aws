@@ -5,7 +5,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_path", required=True)
     parser.add_argument("--output_path", required=True)
-    
+
     parser.add_argument("--partition_key", default=None)
     parser.add_argument("--sns_topic_arn", default=None)
     parser.add_argument("--lookback", default=None)

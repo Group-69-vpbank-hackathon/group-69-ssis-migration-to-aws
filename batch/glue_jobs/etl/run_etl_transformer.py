@@ -4,12 +4,12 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--script_file", required=True)
     parser.add_argument("--data_sources", required=True)
     parser.add_argument("--temp_views", required=True)
     parser.add_argument("--data_writer", required=True)
-    
+
     parser.add_argument("--sns_topic_arn", default=None)
     parser.add_argument("--output_path")
 
@@ -26,12 +26,12 @@ if __name__ == "__main__":
     parser.add_argument("--rolling_window", type=int, default=0)
     parser.add_argument("--granularity", default="daily")
 
-    parser.add_argument('--partition_column') #for S3Writer
-    parser.add_argument("--primary_key") #for SQL DB
+    parser.add_argument("--partition_column")  # for S3Writer
+    parser.add_argument("--primary_key")  # for SQL DB
 
     args, unknown = parser.parse_known_args()
     args_dict = vars(args)
-    
+
     data_writer = create_writer(args_dict)
 
     job = Transformer(args_dict, data_writer)

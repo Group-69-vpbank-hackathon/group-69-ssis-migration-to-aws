@@ -4,6 +4,7 @@ from datetime import datetime
 
 from collector.core.file_collector import FileCollector
 
+
 class ParquetCollector(FileCollector):
     JOB_NAME = "parquet_collector_job"
 
@@ -16,4 +17,3 @@ class ParquetCollector(FileCollector):
     def run(self):
         self.logger.info("Starting ParquetCollector job...")
         return None
-

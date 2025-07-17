@@ -5,8 +5,8 @@ from etl.utils.secret_manager import get_secret
 
 
 class Loader(BaseProcessor):
-    JOB_NAME = 'etl_loader_job'
-    
+    JOB_NAME = "etl_loader_job"
+
     def __init__(self, args, data_writer):
         super().__init__(args, self.JOB_NAME, data_writer)
         self.partition_key = self.args.get("partition_key")
@@ -14,7 +14,7 @@ class Loader(BaseProcessor):
         self.target_format = self.args.get("target_format")
 
         self.mode = self.args.get("mode")
-        self.jdbc_url = self.args.get("jdbc_url") 
+        self.jdbc_url = self.args.get("jdbc_url")
         self.table_name = self.args.get("table")
         self.primary_key = self.args.get("primary_key")
         self.secret_name = self.args.get("secret_name")
@@ -22,12 +22,15 @@ class Loader(BaseProcessor):
         self.username = self.secret.get("username") if self.secret else None
         self.password = self.secret.get("password") if self.secret else None
 
-
     def process(self):
-        df = self._read(input_path=self.input_path, partition_key=self.partition_key, file_format=self.source_format)
-        if self.mode in ['overwrite', 'append']:
+        df = self._read(
+            input_path=self.input_path,
+            partition_key=self.partition_key,
+            file_format=self.source_format,
+        )
+        if self.mode in ["overwrite", "append"]:
             self._write(df, self.mode)
-        if self.mode == 'upsert':
+        if self.mode == "upsert":
             self._upsert_using_anti_join(df, self.primary_key)
 
     def _upsert_using_anti_join(self, df_new, primary_key):
@@ -37,8 +40,8 @@ class Loader(BaseProcessor):
             properties={
                 "user": self.username,
                 "password": self.password,
-                "driver": self.POSTGRES_DRIVER
-            }
+                "driver": self.POSTGRES_DRIVER,
+            },
         )
 
         # Insert mới
@@ -49,18 +52,22 @@ class Loader(BaseProcessor):
 
         # Ghi insert
         df_insert.write.mode("append").jdbc(
-            url=self.jdbc_url,
-            table=self.table_name,
-            properties=self.jdbc_properties()
+            url=self.jdbc_url, table=self.table_name, properties=self.jdbc_properties()
         )
 
         # Xóa bản ghi cũ có id giống update
-        ids_to_delete = [row[primary_key] for row in df_update.select(primary_key).distinct().collect()]
-        
+        ids_to_delete = [
+            row[primary_key]
+            for row in df_update.select(primary_key).distinct().collect()
+        ]
+
         import psycopg2
-        conn = psycopg2.connect(self.jdbc_url.replace("jdbc:postgresql://", "postgresql://"),
-                                user=self.username,
-                                password=self.password)
+
+        conn = psycopg2.connect(
+            self.jdbc_url.replace("jdbc:postgresql://", "postgresql://"),
+            user=self.username,
+            password=self.password,
+        )
         cursor = conn.cursor()
         delete_query = f"DELETE FROM {self.table_name} WHERE {primary_key} IN %s"
         cursor.execute(delete_query, (tuple(ids_to_delete),))
@@ -70,12 +77,5 @@ class Loader(BaseProcessor):
 
         # Ghi lại bản ghi mới đã cập nhật
         df_update.write.mode("append").jdbc(
-            url=self.jdbc_url,
-            table=self.table_name,
-            properties=self.jdbc_properties()
+            url=self.jdbc_url, table=self.table_name, properties=self.jdbc_properties()
         )
-
-
-    
-
-

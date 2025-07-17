@@ -6,9 +6,11 @@ OUTPUT_DIR = "output_partitioned_csv"
 START_DATE = "2025-07-01"
 END_DATE = "2025-07-10"
 
+
 def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
 
 def generate_sample_data(date_str, num_records=10):
     """
@@ -16,13 +18,16 @@ def generate_sample_data(date_str, num_records=10):
     """
     rows = []
     for i in range(1, num_records + 1):
-        rows.append({
-            "id": i,
-            "transaction_date": date_str,
-            "amount": round(1000 * i * 1.1, 2),
-            "description": f"Sample transaction {i}"
-        })
+        rows.append(
+            {
+                "id": i,
+                "transaction_date": date_str,
+                "amount": round(1000 * i * 1.1, 2),
+                "description": f"Sample transaction {i}",
+            }
+        )
     return rows
+
 
 def write_partition_csv(date_str):
     partition_path = os.path.join(OUTPUT_DIR, f"date={date_str}")
@@ -41,6 +46,7 @@ def write_partition_csv(date_str):
 
     print(f"Wrote {len(rows)} records to {file_path}")
 
+
 def main():
     start_dt = datetime.strptime(START_DATE, "%Y-%m-%d").date()
     end_dt = datetime.strptime(END_DATE, "%Y-%m-%d").date()
@@ -50,6 +56,7 @@ def main():
         date_str = current_date.strftime("%Y-%m-%d")
         write_partition_csv(date_str)
         current_date += timedelta(days=1)
+
 
 if __name__ == "__main__":
     main()

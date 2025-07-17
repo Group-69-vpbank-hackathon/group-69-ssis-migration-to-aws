@@ -2,8 +2,9 @@ import json
 import boto3
 import os
 
-s3 = boto3.client('s3')
-BUCKET = os.environ['ARCHIVE_BUCKET']
+s3 = boto3.client("s3")
+BUCKET = os.environ["ARCHIVE_BUCKET"]
+
 
 def lambda_handler(event, context):
     print("📥 Incoming event:", event)
@@ -11,10 +12,10 @@ def lambda_handler(event, context):
     # Lưu trữ các dòng JSONL
     lines = []
 
-    for record in event['Records']:
+    for record in event["Records"]:
         try:
             # Parse body JSON string thành list
-            payload = json.loads(record['body'])  # 👈 Sửa: body là chuỗi JSON chứa list
+            payload = json.loads(record["body"])  # 👈 Sửa: body là chuỗi JSON chứa list
 
             for item in payload:
                 data = item.get("data")
@@ -29,7 +30,7 @@ def lambda_handler(event, context):
         return {"statusCode": 204}
 
     # Tạo tên file từ bản ghi đầu tiên
-    first_item = json.loads(event['Records'][0]['body'])[0]
+    first_item = json.loads(event["Records"][0]["body"])[0]
     table_name = first_item.get("table", "unknown_table")
     shard_seq = first_item.get("shardSequenceNumber", "shardId-000000000000:unknown")
     shard_id, seq_num = shard_seq.split(":")

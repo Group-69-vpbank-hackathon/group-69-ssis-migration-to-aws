@@ -2,7 +2,7 @@ from etl.core_modules.accomplisher import Accomplisher
 from etl.utils.data_writer_factory import create_writer
 import argparse
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ssm_parameter_name", required=True)
     parser.add_argument("--lookback", type=int, default=0)
@@ -15,6 +15,6 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
     args_dict = vars(args)
     data_writer = create_writer(args=args_dict)
-    
+
     job = Accomplisher(args_dict, data_writer)
     job.run()

@@ -1,6 +1,7 @@
 import json
 from psycopg2.extras import execute_values
 
+
 def handle(records, cur, conn):
     if not records:
         return
@@ -16,14 +17,20 @@ def handle(records, cur, conn):
     values = []
     for data in data_list:
         row = [
-            json.dumps(data[col], ensure_ascii=False) if isinstance(data[col], dict) else data[col]
+            (
+                json.dumps(data[col], ensure_ascii=False)
+                if isinstance(data[col], dict)
+                else data[col]
+            )
             for col in columns
         ]
         values.append(tuple(row))
 
     # SQL insert
-    insert_cols = ', '.join([f'"{col}"' for col in columns])
-    set_cols = ', '.join([f'"{col}"=EXCLUDED."{col}"' for col in columns if col != "ID"])
+    insert_cols = ", ".join([f'"{col}"' for col in columns])
+    set_cols = ", ".join(
+        [f'"{col}"=EXCLUDED."{col}"' for col in columns if col != "ID"]
+    )
     sql = f"""
         INSERT INTO "{table}" ({insert_cols})
         VALUES %s

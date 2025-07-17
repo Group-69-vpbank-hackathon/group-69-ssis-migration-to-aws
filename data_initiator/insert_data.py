@@ -1,4 +1,3 @@
-
 import psycopg2
 import random
 from faker import Faker
@@ -7,9 +6,11 @@ from tqdm import tqdm
 import os
 import argparse
 from dotenv import load_dotenv
+
 load_dotenv()
 fake = Faker("vi_VN")
 TODAY = datetime.today().strftime("%Y-%m-%d")
+
 
 def connect_postgres():
     return psycopg2.connect(
@@ -17,15 +18,19 @@ def connect_postgres():
         user=os.getenv("PG_USER"),
         password=os.getenv("PG_PASSWORD"),
         host=os.getenv("PG_HOST"),
-        port=os.getenv("PG_PORT")
+        port=os.getenv("PG_PORT"),
     )
+
+
 def fake_string(length=10):
     return fake.lexify(text="?" * length)
+
 
 # --------------------- Fake
 def generate_shared_ref_list(n):
     """Sinh n REF_NO dùng chung cho bảng chính và phụ"""
     return [{"REF_NO": fake.uuid4(), "BUSINESS_DATE": TODAY} for _ in range(n)]
+
 
 ## --- fake_tmp_efz_ft
 def fake_tmp_efz_ft_his(ref_entry):
@@ -82,8 +87,10 @@ def fake_tmp_efz_ft_his(ref_entry):
         "AUTH_DATE": TODAY,
         "SENDING_ACCT": fake.bban(),
         "DEPT_CODE": fake.bothify(text="DPT##"),
-        "VPB_INPUTTER": fake.name()
+        "VPB_INPUTTER": fake.name(),
     }
+
+
 def fake_tmp_efz_ft_his_details(ref_entry):
     return {
         **ref_entry,
@@ -101,8 +108,9 @@ def fake_tmp_efz_ft_his_details(ref_entry):
         "RECEIVING_ADDR": fake.address(),
         "ORDERING_CUST": fake.name(),
         "SENDING_ADDR": fake.address(),
-        "COMMISSION_AMT": str(random.randint(1000, 5000))
+        "COMMISSION_AMT": str(random.randint(1000, 5000)),
     }
+
 
 ## --- fake_tmp_efz_ft
 def fake_tmp_efz_ft_after_cob(ref_entry):
@@ -175,8 +183,10 @@ def fake_tmp_efz_ft_after_cob(ref_entry):
         "DEBIT_AMOUNT": str(random.randint(1_000_000, 10_000_000)),
         "BAL_AFT_TXN": str(random.randint(1_000_000, 10_000_000)),
         "AT_MC_TRANS": fake.lexify(text="TRN####"),
-        "TOTAL_TAX_AMOUNT": str(random.randint(1000, 10000))
+        "TOTAL_TAX_AMOUNT": str(random.randint(1000, 10000)),
     }
+
+
 def fake_tmp_efz_ft_after_cob_details(ref_entry):
     return {
         **ref_entry,
@@ -196,8 +206,9 @@ def fake_tmp_efz_ft_after_cob_details(ref_entry):
         "REF_DATA_ITEM": fake.lexify(text="ITEM##"),
         "RECEIVING_ADDR": fake.address(),
         "SENDING_ADDR": fake.address(),
-        "COMMISSION_AMT": str(random.randint(1000, 5000))
+        "COMMISSION_AMT": str(random.randint(1000, 5000)),
     }
+
 
 ## --- fake_tmp_efz_ft
 def fake_common_fields_detail(ref_entry):
@@ -208,11 +219,15 @@ def fake_common_fields_detail(ref_entry):
         "DATE_TIME": fake.date_time().strftime("%Y-%m-%d %H:%M:%S"),
         "BUSINESS_DATE": ref_entry["BUSINESS_DATE"],
     }
+
+
 def fake_common_fields_header():
     return {
         "REF_NO": fake.uuid4(),
         "BUSINESS_DATE": datetime.today().strftime("%Y-%m-%d"),
     }
+
+
 def fake_tmp_efz_funds_transfer(ref_entry):
     return {
         **ref_entry,
@@ -266,8 +281,10 @@ def fake_tmp_efz_funds_transfer(ref_entry):
         "AUTH_DATE": TODAY,
         "SENDING_ACCT": fake.bban(),
         "DEPT_CODE": fake.bothify(text="DPT##"),
-        "VPB_INPUTTER": fake.name()
+        "VPB_INPUTTER": fake.name(),
     }
+
+
 def fake_tmp_efz_funds_transfer_details(ref_entry):
     return {
         **fake_common_fields_detail(ref_entry),
@@ -282,7 +299,7 @@ def fake_tmp_efz_funds_transfer_details(ref_entry):
         "RECEIVING_ADDR": fake.address(),
         "ORDERING_CUST": fake.name(),
         "SENDING_ADDR": fake.address(),
-        "COMMISSION_AMT": str(random.randint(1000, 5000))
+        "COMMISSION_AMT": str(random.randint(1000, 5000)),
     }
 
 
@@ -295,20 +312,28 @@ def insert_fake_linked_rows(n=5):
     for ref in tqdm(ref_entries, ncols=100, colour="cyan", desc="Linked Insert"):
         # Insert vào bảng chính
         his_row = fake_tmp_efz_ft_his(ref)
-        his_cols = ', '.join(f'"{k}"' for k in his_row)
-        his_vals = ', '.join(['%s'] * len(his_row))
-        cur.execute(f'INSERT INTO "TMP_EFZ_FT_HIS" ({his_cols}) VALUES ({his_vals})', list(his_row.values()))
+        his_cols = ", ".join(f'"{k}"' for k in his_row)
+        his_vals = ", ".join(["%s"] * len(his_row))
+        cur.execute(
+            f'INSERT INTO "TMP_EFZ_FT_HIS" ({his_cols}) VALUES ({his_vals})',
+            list(his_row.values()),
+        )
 
         # Insert 1 hoặc nhiều bản ghi phụ (tùy bạn điều chỉnh số lượng)
         for _ in range(random.randint(1, 3)):
             detail_row = fake_tmp_efz_ft_his_details(ref)
-            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
-            detail_vals = ', '.join(['%s'] * len(detail_row))
-            cur.execute(f'INSERT INTO "TMP_EFZ_FT_HIS_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+            detail_cols = ", ".join(f'"{k}"' for k in detail_row)
+            detail_vals = ", ".join(["%s"] * len(detail_row))
+            cur.execute(
+                f'INSERT INTO "TMP_EFZ_FT_HIS_DETAILS" ({detail_cols}) VALUES ({detail_vals})',
+                list(detail_row.values()),
+            )
 
     conn.commit()
     cur.close()
     conn.close()
+
+
 def insert_fake_after_cob_data(n=10):
     ref_entries = generate_shared_ref_list(n)
     conn = connect_postgres()
@@ -317,42 +342,59 @@ def insert_fake_after_cob_data(n=10):
     for ref in tqdm(ref_entries, desc="AFTER_COB Insert", ncols=100, colour="yellow"):
         # Bảng chính
         main_row = fake_tmp_efz_ft_after_cob(ref)
-        main_cols = ', '.join(f'"{k}"' for k in main_row)
-        main_vals = ', '.join(['%s'] * len(main_row))
-        cur.execute(f'INSERT INTO "TMP_EFZ_FT_AFTER_COB" ({main_cols}) VALUES ({main_vals})', list(main_row.values()))
+        main_cols = ", ".join(f'"{k}"' for k in main_row)
+        main_vals = ", ".join(["%s"] * len(main_row))
+        cur.execute(
+            f'INSERT INTO "TMP_EFZ_FT_AFTER_COB" ({main_cols}) VALUES ({main_vals})',
+            list(main_row.values()),
+        )
 
         # 1-3 bản ghi phụ
         for _ in range(random.randint(1, 3)):
             detail_row = fake_tmp_efz_ft_after_cob_details(ref)
-            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
-            detail_vals = ', '.join(['%s'] * len(detail_row))
-            cur.execute(f'INSERT INTO "TMP_EFZ_FT_AFTER_COB_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+            detail_cols = ", ".join(f'"{k}"' for k in detail_row)
+            detail_vals = ", ".join(["%s"] * len(detail_row))
+            cur.execute(
+                f'INSERT INTO "TMP_EFZ_FT_AFTER_COB_DETAILS" ({detail_cols}) VALUES ({detail_vals})',
+                list(detail_row.values()),
+            )
 
     conn.commit()
     cur.close()
     conn.close()
+
+
 def insert_fake_funds_transfer_data(n=10):
     ref_entries = [fake_common_fields_header() for _ in range(n)]
     conn = connect_postgres()
     cur = conn.cursor()
 
-    for ref in tqdm(ref_entries, desc="FUNDS_TRANSFER Insert", ncols=100, colour="blue"):
+    for ref in tqdm(
+        ref_entries, desc="FUNDS_TRANSFER Insert", ncols=100, colour="blue"
+    ):
         # Insert bản ghi chính
         main_row = fake_tmp_efz_funds_transfer(ref)
-        main_cols = ', '.join(f'"{k}"' for k in main_row)
-        main_vals = ', '.join(['%s'] * len(main_row))
-        cur.execute(f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER" ({main_cols}) VALUES ({main_vals})', list(main_row.values()))
+        main_cols = ", ".join(f'"{k}"' for k in main_row)
+        main_vals = ", ".join(["%s"] * len(main_row))
+        cur.execute(
+            f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER" ({main_cols}) VALUES ({main_vals})',
+            list(main_row.values()),
+        )
 
         # Insert 1-3 bản ghi phụ
         for _ in range(random.randint(1, 3)):
             detail_row = fake_tmp_efz_funds_transfer_details(ref)
-            detail_cols = ', '.join(f'"{k}"' for k in detail_row)
-            detail_vals = ', '.join(['%s'] * len(detail_row))
-            cur.execute(f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER_DETAILS" ({detail_cols}) VALUES ({detail_vals})', list(detail_row.values()))
+            detail_cols = ", ".join(f'"{k}"' for k in detail_row)
+            detail_vals = ", ".join(["%s"] * len(detail_row))
+            cur.execute(
+                f'INSERT INTO "TMP_EFZ_FUNDS_TRANSFER_DETAILS" ({detail_cols}) VALUES ({detail_vals})',
+                list(detail_row.values()),
+            )
 
     conn.commit()
     cur.close()
     conn.close()
+
 
 # --------------------- insert
 def insert_fake_rows(table, row_generator, n=5):
@@ -360,13 +402,14 @@ def insert_fake_rows(table, row_generator, n=5):
     cur = conn.cursor()
     for _ in tqdm(range(n), ncols=100, colour="green", desc=table):
         row = row_generator()
-        columns = ', '.join(f'"{k}"' for k in row.keys())
-        values = ', '.join(['%s'] * len(row))
+        columns = ", ".join(f'"{k}"' for k in row.keys())
+        values = ", ".join(["%s"] * len(row))
         sql = f'INSERT INTO "{table}" ({columns}) VALUES ({values})'
         cur.execute(sql, list(row.values()))
     conn.commit()
     cur.close()
     conn.close()
+
 
 if __name__ == "__main__":
     n_sample = 10
@@ -374,7 +417,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_sample", required=False, default=10)
     args = parser.parse_args()
     n_sample = int(args.n_sample)
-    print(f'🚀 Generate with {n_sample} sample data')
+    print(f"🚀 Generate with {n_sample} sample data")
     insert_fake_linked_rows(n=n_sample)
     insert_fake_after_cob_data(n=n_sample)
     insert_fake_funds_transfer_data(n=n_sample)

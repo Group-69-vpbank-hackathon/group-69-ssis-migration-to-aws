@@ -1,9 +1,10 @@
 import boto3
 from etl.core_modules.base.base_processor import BaseProcessor
 
+
 class Transformer(BaseProcessor):
-    JOB_NAME = 'etl_transformer_job'
-    
+    JOB_NAME = "etl_transformer_job"
+
     def __init__(self, args, data_writer):
         super().__init__(args, self.JOB_NAME, data_writer)
         self.script_file = self.args.get("script_file")
@@ -17,13 +18,15 @@ class Transformer(BaseProcessor):
         views = [v.strip() for v in self.temp_views.split(",")]
 
         if len(sources) != len(views):
-            raise ValueError("data_sources and temp_views must have the same number of items.")
+            raise ValueError(
+                "data_sources and temp_views must have the same number of items."
+            )
 
         for source, view in zip(sources, views):
             self.logger.info(f"Reading {source} as {view}")
             df = self._read(input_path=source)
             df.createOrReplaceTempView(view)
-            
+
     def _execute_query(self):
         if self.script_file.startswith("s3://"):
             self.logger.info(f"Reading SQL script from S3: {self.script_file}")
@@ -50,7 +53,7 @@ class Transformer(BaseProcessor):
         s3_uri = s3_uri.replace("s3://", "")
         parts = s3_uri.split("/", 1)
         return parts[0], parts[1]
-        
+
     def process(self):
         self._register_temp_view()
         result_df = self._execute_query()

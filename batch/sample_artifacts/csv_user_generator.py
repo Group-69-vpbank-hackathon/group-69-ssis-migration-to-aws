@@ -12,10 +12,6 @@ with open("users.csv", mode="w", newline="", encoding="utf-8") as file:
     for user_id in range(1, 1001):
         username = fake.user_name()
         email = fake.email()
-        writer.writerow({
-            "user_id": user_id,
-            "username": username,
-            "email": email
-        })
+        writer.writerow({"user_id": user_id, "username": username, "email": email})
 
 print("✅ Đã tạo file users.csv với 1000 users.")
