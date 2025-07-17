@@ -254,6 +254,14 @@ resource "aws_s3_object" "lambda_dlq_handler" {
   depends_on = [aws_s3_bucket.lambda_artifacts_bucket]
 }
 
+resource "aws_s3_object" "lambda_firehose_transformer" {
+  bucket = "${var.lambda_artifacts_bucket}"
+  key    = "functions/firehose_transformer.zip"
+  source = "${path.module}/../streaming/lambda/firehose_transformer.zip"
+
+  depends_on = [aws_s3_bucket.lambda_artifacts_bucket]
+}
+
 resource "aws_s3_object" "lambda_layer_psycopg2" {
   bucket = "${var.lambda_artifacts_bucket}"
   key    = "layers/psycopg2_layer.zip"

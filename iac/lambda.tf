@@ -23,10 +23,13 @@ resource "aws_lambda_function" "kinesis_consumer" {
     vpc_config {
       subnet_ids         = [
         aws_subnet.private_subnet_a.id,
-        aws_subnet.private_subnet_b.id
+        aws_subnet.private_subnet_b.id,
+        aws_subnet.public_subnet.id
       ]
       security_group_ids = [aws_security_group.lambda_sg.id]
     }
+
+    depends_on = [aws_s3_bucket.lambda_artifacts_bucket]
 }
 
 resource "aws_lambda_layer_version" "psycopg2_layer" {
@@ -36,6 +39,8 @@ resource "aws_lambda_layer_version" "psycopg2_layer" {
 
   s3_bucket = "${var.lambda_artifacts_bucket}"
   s3_key    = "layers/psycopg2_layer.zip"
+
+  depends_on = [aws_s3_bucket.lambda_artifacts_bucket]
 }
 
 resource "aws_lambda_function" "dlq_handler" {
@@ -98,6 +103,8 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
 
   function_response_types = ["ReportBatchItemFailures"]
 }
+
+
 resource "aws_security_group" "lambda_sg" {
   name        = "lambda-sg"
   description = "Allow Lambda outbound HTTPS to VPC Endpoints"
@@ -110,4 +117,13 @@ resource "aws_security_group" "lambda_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    description = "Allow HTTPS to anywhere (NAT or VPC Endpoints)"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main_vpc.cidr_block]
+  }
 }
+

@@ -12,6 +12,10 @@ resource "aws_glue_job" "csv_collector" {
     aws_glue_connection.vpc_network_config.name
   ]
 
+  execution_property {
+    max_concurrent_runs = 20
+  }
+
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
     "--TempDir"        = "s3://${var.glue_bucket}/glue_temp/"
@@ -33,6 +37,10 @@ resource "aws_glue_job" "postgres_collector" {
     aws_glue_connection.vpc_network_config.name
   ]
   
+  execution_property {
+    max_concurrent_runs = 20
+  }
+
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
     "--TempDir"        = "s3://${var.glue_bucket}/glue_temp/"
@@ -49,6 +57,10 @@ resource "aws_glue_job" "etl_loader" {
   }
   max_capacity = 2
   glue_version = "3.0"
+
+  execution_property {
+    max_concurrent_runs = 20
+  }
 
   connections = [
     aws_glue_connection.vpc_network_config.name
@@ -75,6 +87,10 @@ resource "aws_glue_job" "etl_transformer" {
     aws_glue_connection.vpc_network_config.name
   ]
 
+  execution_property {
+    max_concurrent_runs = 20
+  }
+
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
     "--TempDir"        = "s3://${var.glue_bucket}/glue_temp/"
@@ -91,6 +107,10 @@ resource "aws_glue_job" "etl_quality_checker" {
   }
   max_capacity = 2
   glue_version = "3.0"
+
+  execution_property {
+    max_concurrent_runs = 20
+  }
 
   connections = [
     aws_glue_connection.vpc_network_config.name
@@ -117,6 +137,10 @@ resource "aws_glue_job" "etl_accomplisher" {
     aws_glue_connection.vpc_network_config.name
   ]
 
+  execution_property {
+    max_concurrent_runs = 20
+  }
+  
   default_arguments = {
     "--extra-py-files" = "s3://${var.glue_bucket}/libs/libs.zip"
     "--TempDir"        = "s3://${var.glue_bucket}/glue_temp/"
@@ -135,21 +159,13 @@ resource "aws_security_group" "glue_sg" {
     self      = true
   }
   
-  # Tối ưu egress rule cho bảo mật tốt hơn
   egress {
-    from_port   = 5432  # Chỉ mở port eodQL
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.eod_vpc.cidr_block, aws_vpc.db_app_vpc.cidr_block]  # Chỉ cho phép đến RDS VPC
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-  
-  # Thêm rule egress cho các dịch vụ AWS cần thiết
-  egress {
-    from_port   = 443  # HTTPS
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Cho phép ra các dịch vụ AWS
-  }
+
   tags = {
     Name = "${var.project_name}-glue-sg"
   }

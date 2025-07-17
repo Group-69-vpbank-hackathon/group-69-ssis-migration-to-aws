@@ -1,6 +1,6 @@
 # ======================== main VPC ==========================
 resource "aws_vpc" "main_vpc" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.2.0.0/16"
   enable_dns_hostnames = true # Cần thiết cho một số dịch vụ
   enable_dns_support   = true # Cần thiết cho một số dịch vụ
   tags = {
@@ -17,7 +17,7 @@ resource "aws_internet_gateway" "igw" {
 
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main_vpc.id
-  cidr_block              = "10.0.0.0/24"
+  cidr_block              = "10.2.1.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true # Không thực sự cần cho NAT GW nhưng là thông lệ tốt
   tags = {
@@ -27,7 +27,7 @@ resource "aws_subnet" "public_subnet" {
 
 resource "aws_subnet" "private_subnet_a" {
   vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "10.0.1.0/24"
+  cidr_block        = "10.2.3.0/24"
   availability_zone = "us-east-1a"
   tags = {
     Name = "${var.project_name}-private-subnet"
@@ -36,7 +36,7 @@ resource "aws_subnet" "private_subnet_a" {
 
 resource "aws_subnet" "private_subnet_b" {
   vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "10.0.2.0/24"
+  cidr_block        = "10.2.4.0/24"
   availability_zone = "us-east-1b"
   tags = {
     Name = "${var.project_name}-private-subnet-b"
@@ -80,6 +80,7 @@ resource "aws_route_table" "private_rt" {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat_gw.id
   }
+
   tags = {
     Name = "${var.project_name}-private-rt"
   }

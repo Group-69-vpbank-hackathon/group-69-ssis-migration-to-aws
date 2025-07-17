@@ -399,6 +399,12 @@ resource "aws_iam_role_policy" "firehose_policy" {
       },
       {
         Effect = "Allow",
+        Action = "lambda:InvokeFunction",
+        Resource = aws_lambda_function.firehose_transformer.arn
+      },
+
+      {
+        Effect = "Allow",
         Action = [
           "logs:PutLogEvents"
         ],
@@ -407,3 +413,4 @@ resource "aws_iam_role_policy" "firehose_policy" {
     ]
   })
 }
+

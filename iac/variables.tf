@@ -114,3 +114,9 @@ variable "ssh_key_bastion_db_app" {
   default     = "bastion-db-app-key"
 }
 
+variable "ssh_key_bastion_main" {
+  description = "AMI ID for bastion EC2 (e.g. Amazon Linux 2023)"
+  type        = string
+  default     = "bastion-main-key"
+}
+

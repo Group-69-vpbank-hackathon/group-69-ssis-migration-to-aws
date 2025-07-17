@@ -23,6 +23,7 @@ resource "aws_dms_replication_instance" "eod_cdc" {
   replication_instance_class   = "dms.t3.medium"
   replication_instance_id      = "${var.project_name}-dms-eod-cdc-instance"
   replication_subnet_group_id  = aws_dms_replication_subnet_group.glue_subnet_group.replication_subnet_group_id
+  vpc_security_group_ids       = [aws_security_group.dms_sg.id]
 
   lifecycle {
     prevent_destroy       = false
@@ -33,6 +34,7 @@ resource "aws_dms_replication_instance" "eod_cdc" {
   tags = {
     Name = "${var.project_name}-dms-instance"
   }
+
 }
 
 
@@ -47,16 +49,9 @@ resource "aws_dms_endpoint" "eod_source" {
   port          = 5432
   database_name = var.postgres_db_name
 
-  username = jsondecode(aws_secretsmanager_secret_version.eod_creds_version.secret_string)["username"]
-  password = jsondecode(aws_secretsmanager_secret_version.eod_creds_version.secret_string)["password"]
+  username = jsondecode(aws_secretsmanager_secret_version.eod_creds_version.secret_string)["db_username"]
+  password = jsondecode(aws_secretsmanager_secret_version.eod_creds_version.secret_string)["db_password"]
 
-  postgres_settings {
-    capture_ddls     = true
-    slot_name        = "dms_slot"
-    heartbeat_enable = true
-    heartbeat_schema = "public"
-    max_file_size    = 512
-  }
 }
 
 
@@ -76,7 +71,7 @@ resource "aws_dms_endpoint" "kinesis_target" {
 
 # DMS Replication Task
 resource "aws_dms_replication_task" "eod_to_kinesis" {
-  migration_type           = "cdc"
+  migration_type           = "full-load-and-cdc"
   replication_instance_arn = aws_dms_replication_instance.eod_cdc.replication_instance_arn
   replication_task_id      = "${var.project_name}-eod-to-kinesis"
   source_endpoint_arn      = aws_dms_endpoint.eod_source.endpoint_arn
@@ -97,20 +92,12 @@ resource "aws_security_group" "dms_sg" {
   
   # Cho phép DMS kết nối đến eod
   egress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.eod_vpc.cidr_block]
-  }
-  
-  # Cho phép DMS gửi data đến Kinesis qua VPC Endpoint
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = {
     Name = "${var.project_name}-dms-sg"
   }
