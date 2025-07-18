@@ -48,7 +48,8 @@ resource "aws_security_group" "db_app_sg" {
     protocol    = "tcp"
     security_groups = [
       aws_security_group.lambda_sg.id, 
-      aws_security_group.bastion_db_app_sg.id
+      aws_security_group.bastion_db_app_sg.id,
+      aws_security_group.glue_sg.id
     ]
   }
   

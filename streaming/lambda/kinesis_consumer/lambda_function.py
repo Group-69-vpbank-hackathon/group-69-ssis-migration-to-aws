@@ -36,7 +36,7 @@ def lambda_handler(event, context):
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"❌ Error handling table {table}: {e}")
+        print(f"❌ Error handling data: {e}")
         cur.close()
         conn.close()
 
