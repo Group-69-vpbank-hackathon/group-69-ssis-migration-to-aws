@@ -9,6 +9,9 @@ Hệ thống hỗ trợ ingest, transform, kiểm tra chất lượng và nạp 
 
 ## Kiến trúc tổng quan
 
+![architecture](./architecture.jpeg)
+
+
 - **Batch ETL**: Các Glue Job thực hiện collect, transform, quality check và load dữ liệu theo batch.
 - **Streaming**: Dữ liệu thay đổi (CDC) được đẩy lên Kinesis, xử lý real-time qua Lambda, ghi vào database.
 - **Orchestration**: Step Functions điều phối các Glue Job theo pipeline.
